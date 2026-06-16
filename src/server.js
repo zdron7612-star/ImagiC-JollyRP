@@ -577,6 +577,60 @@ app.post('/api/import', upload.single('backup'), (req, res) => {
   }
 });
 
+// 7. Custom API proxy to bypass CORS and tunnel warning pages (e.g. Pinggy/ngrok)
+app.post('/api/proxy/completion', async (req, res) => {
+  const controller = new AbortController();
+  req.on('close', () => {
+    controller.abort();
+  });
+
+  try {
+    const { endpointUrl, headers, requestBody } = req.body;
+
+    if (!endpointUrl) {
+      return res.status(400).json({ error: 'Missing endpointUrl' });
+    }
+
+    // Use a curl User-Agent to bypass Pinggy and ngrok splash screens
+    const proxyHeaders = {
+      ...headers,
+      'User-Agent': 'curl/7.88.1'
+    };
+
+    const response = await fetch(endpointUrl, {
+      method: 'POST',
+      headers: proxyHeaders,
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
+    });
+
+    res.status(response.status);
+    
+    // Copy headers from response
+    for (const [key, value] of response.headers.entries()) {
+      if (key.toLowerCase() !== 'transfer-encoding' && key.toLowerCase() !== 'content-encoding') {
+        res.setHeader(key, value);
+      }
+    }
+
+    if (response.body) {
+      for await (const chunk of response.body) {
+        res.write(chunk);
+      }
+    }
+    res.end();
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      console.log('[Proxy] Request aborted by client.');
+    } else {
+      console.error('Error in /api/proxy/completion:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: err.message });
+      }
+    }
+  }
+});
+
 // Static files for production
 app.use(express.static(path.join(rootDir, 'dist')));
 

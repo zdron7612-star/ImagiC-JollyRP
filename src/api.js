@@ -116,10 +116,26 @@ export async function streamChatCompletion({
       requestBody.reasoning_format = "hidden";
     }
 
-    const response = await fetch(endpointUrl, {
+    let fetchUrl = endpointUrl;
+    let fetchHeaders = headers;
+    let fetchBody = requestBody;
+
+    if (provider === 'custom') {
+      fetchUrl = '/api/proxy/completion';
+      fetchHeaders = {
+        'Content-Type': 'application/json'
+      };
+      fetchBody = {
+        endpointUrl: endpointUrl,
+        headers: headers,
+        requestBody: requestBody
+      };
+    }
+
+    const response = await fetch(fetchUrl, {
       method: "POST",
-      headers: headers,
-      body: JSON.stringify(requestBody),
+      headers: fetchHeaders,
+      body: JSON.stringify(fetchBody),
       signal: signal
     });
 
