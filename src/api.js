@@ -44,7 +44,7 @@ export async function streamChatCompletion({
     headers["HTTP-Referer"] = "https://jollyrp.ai";
     headers["X-Title"] = "JollyRP client";
   } else if (provider === 'custom') {
-    let baseUrl = customUrl.trim().replace(/\/$/, '');
+    let baseUrl = (customUrl || '').trim().replace(/\/$/, '');
     try {
       const parsedUrl = new URL(baseUrl);
       if (parsedUrl.pathname === '' || parsedUrl.pathname === '/') {
@@ -60,7 +60,8 @@ export async function streamChatCompletion({
   }
 
   // Identify if this is a known reasoning model
-  const modelLower = model.toLowerCase();
+  const modelName = model || '';
+  const modelLower = modelName.toLowerCase();
   const isThinkingModel = 
     modelLower.includes('qwen') || 
     modelLower.includes('deepseek') || 
@@ -70,11 +71,15 @@ export async function streamChatCompletion({
   try {
     // Sanitize parameters to avoid 400 Bad Request on specific providers (like direct OpenAI)
     const requestBody = {
-      model: model,
       messages: messages,
       temperature: parseFloat(temperature),
       stream: true
     };
+    if (modelName) {
+      requestBody.model = modelName;
+    } else if (provider === 'openrouter') {
+      requestBody.model = 'openrouter/free';
+    }
 
     const isCustomOpenAI = provider === 'custom' && endpointUrl.includes('openai.com');
 

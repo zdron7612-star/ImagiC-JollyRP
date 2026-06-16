@@ -5103,29 +5103,35 @@ class JollyRPApp {
 
     let startedStreaming = false;
 
-    streamChatCompletion({
-      ...options,
-      apiKey: currentApiKey,
-      customUrl: currentUrl,
-      onChunk: (chunk) => {
-        startedStreaming = true;
-        if (options.onChunk) options.onChunk(chunk);
-      },
-      onFinish: (fullText) => {
-        if (options.onFinish) options.onFinish(fullText);
-      },
-      onError: (err) => {
-        if (!startedStreaming && err.message) {
-          const errMsg = err.message.toLowerCase();
-          if (errMsg.includes('401') || errMsg.includes('402') || errMsg.includes('403') || errMsg.includes('429') || errMsg.includes('fetch failed')) {
-            options.lastErrorMsg = err.message;
-            this.executeChatWithFallbacks(options, fallbackIndex + 1);
-            return;
+    try {
+      streamChatCompletion({
+        ...options,
+        apiKey: currentApiKey,
+        customUrl: currentUrl,
+        onChunk: (chunk) => {
+          startedStreaming = true;
+          if (options.onChunk) options.onChunk(chunk);
+        },
+        onFinish: (fullText) => {
+          if (options.onFinish) options.onFinish(fullText);
+        },
+        onError: (err) => {
+          if (!startedStreaming && err.message) {
+            const errMsg = err.message.toLowerCase();
+            if (errMsg.includes('401') || errMsg.includes('402') || errMsg.includes('403') || errMsg.includes('429') || errMsg.includes('fetch failed')) {
+              options.lastErrorMsg = err.message;
+              this.executeChatWithFallbacks(options, fallbackIndex + 1);
+              return;
+            }
           }
+          if (options.onError) options.onError(err);
         }
+      }).catch(err => {
         if (options.onError) options.onError(err);
-      }
-    });
+      });
+    } catch (err) {
+      if (options.onError) options.onError(err);
+    }
   }
 
   scrollToBottom() {
