@@ -15,7 +15,21 @@ const rootDir = path.resolve(__dirname, '..');
 const appDataPath = process.env.DATA_DIR || rootDir;
 
 const app = express();
-app.use(cors());
+const allowedOrigins = new Set([
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+]);
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Origin not allowed'));
+  }
+}));
 // Increase the limit for JSON bodies if dealing with large chat logs
 app.use(express.json({ limit: '50mb' }));
 
@@ -75,6 +89,54 @@ function decrypt(text) {
     console.error('Decryption failed, key might be invalid:', err);
     return '';
   }
+}
+
+function sanitizeCompletionProxyHeaders(inputHeaders = {}) {
+  const safeHeaders = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json, text/event-stream'
+  };
+  const allowedHeaderNames = new Set([
+    'authorization',
+    'x-api-key',
+    'api-key',
+    'anthropic-version',
+    'openai-organization',
+    'openai-project'
+  ]);
+
+  Object.entries(inputHeaders || {}).forEach(([key, value]) => {
+    const lowerKey = String(key).toLowerCase();
+    if (!allowedHeaderNames.has(lowerKey)) return;
+    if (typeof value !== 'string' || value.length > 4096) return;
+    safeHeaders[key] = value;
+  });
+
+  safeHeaders['User-Agent'] = 'JollyRP/1.0';
+  return safeHeaders;
+}
+
+function validateCompletionEndpoint(endpointUrl) {
+  if (!endpointUrl || typeof endpointUrl !== 'string') {
+    throw new Error('Missing endpointUrl');
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(endpointUrl);
+  } catch (err) {
+    throw new Error('Invalid custom endpoint URL');
+  }
+
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new Error('Custom endpoint must use http or https');
+  }
+
+  if (!parsed.pathname.endsWith('/chat/completions')) {
+    throw new Error('Custom endpoint must target an OpenAI-compatible /chat/completions route');
+  }
+
+  return parsed.toString();
 }
 
 function extractCharaFromPng(buffer) {
@@ -580,24 +642,23 @@ app.post('/api/import', upload.single('backup'), (req, res) => {
 // 7. Custom API proxy to bypass CORS and tunnel warning pages (e.g. Pinggy/ngrok)
 app.post('/api/proxy/completion', async (req, res) => {
   const controller = new AbortController();
-  req.on('close', () => {
-    controller.abort();
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      controller.abort();
+    }
   });
 
   try {
     const { endpointUrl, headers, requestBody } = req.body;
+    const safeEndpointUrl = validateCompletionEndpoint(endpointUrl);
 
-    if (!endpointUrl) {
-      return res.status(400).json({ error: 'Missing endpointUrl' });
+    if (!requestBody || typeof requestBody !== 'object') {
+      return res.status(400).json({ error: 'Missing requestBody' });
     }
 
-    // Use a curl User-Agent to bypass Pinggy and ngrok splash screens
-    const proxyHeaders = {
-      ...headers,
-      'User-Agent': 'curl/7.88.1'
-    };
+    const proxyHeaders = sanitizeCompletionProxyHeaders(headers);
 
-    const response = await fetch(endpointUrl, {
+    const response = await fetch(safeEndpointUrl, {
       method: 'POST',
       headers: proxyHeaders,
       body: JSON.stringify(requestBody),
@@ -607,8 +668,20 @@ app.post('/api/proxy/completion', async (req, res) => {
     res.status(response.status);
     
     // Copy headers from response
+    const blockedResponseHeaders = new Set([
+      'transfer-encoding',
+      'content-encoding',
+      'content-length',
+      'connection',
+      'keep-alive',
+      'proxy-authenticate',
+      'proxy-authorization',
+      'te',
+      'trailer',
+      'upgrade'
+    ]);
     for (const [key, value] of response.headers.entries()) {
-      if (key.toLowerCase() !== 'transfer-encoding' && key.toLowerCase() !== 'content-encoding') {
+      if (!blockedResponseHeaders.has(key.toLowerCase())) {
         res.setHeader(key, value);
       }
     }
@@ -653,4 +726,3 @@ const port = process.env.PORT || 3001;
 app.listen(port, () => {
   console.log(`JollyRP Local Server listening on port ${port}`);
 });
-

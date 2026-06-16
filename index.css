@@ -980,6 +980,8 @@ header {
   -webkit-overflow-scrolling: touch;
 }
 
+
+
 /* Filter Pill Button styling */
 .filter-pill {
   background: var(--bg-tertiary);

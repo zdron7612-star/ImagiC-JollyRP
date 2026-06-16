@@ -1,3 +1,5 @@
+import { fetchChatCompletionJson, extractChoiceContent } from './api.js';
+
 /**
  * Memory Forge & Truth Ledger Management
  * Handles sliding window chat history, lorebook keyword matching, 
@@ -351,54 +353,16 @@ ${conversationText}
 
 [New Summary]`;
 
-  let endpointUrl = "";
-  let headers = {
-    "Content-Type": "application/json"
-  };
-
-  if (provider === 'openrouter') {
-    endpointUrl = "https://openrouter.ai/api/v1/chat/completions";
-    headers["Authorization"] = `Bearer ${apiKey}`;
-    headers["HTTP-Referer"] = "https://jollyrp.ai";
-    headers["X-Title"] = "JollyRP client";
-  } else if (provider === 'huggingface') {
-    endpointUrl = `https://api-inference.huggingface.co/models/${model}/v1/chat/completions`;
-    headers["Authorization"] = `Bearer ${apiKey}`;
-  } else if (provider === 'pollinations') {
-    endpointUrl = "https://text.pollinations.ai/v1/chat/completions";
-  } else if (provider === 'custom') {
-    let baseUrl = customUrl.trim().replace(/\/$/, '');
-    try {
-      const parsedUrl = new URL(baseUrl);
-      if (parsedUrl.pathname === '' || parsedUrl.pathname === '/') {
-        baseUrl += '/v1';
-      }
-    } catch (e) {
-      // Ignore parsing errors and fallback to baseUrl
-    }
-    endpointUrl = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
-    if (apiKey) {
-      headers["Authorization"] = `Bearer ${apiKey}`;
-    }
-  }
-
   try {
-    const response = await fetch(endpointUrl, {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify({
-        model: model,
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.3
-      })
+    const data = await fetchChatCompletionJson({
+      apiKey,
+      model,
+      provider,
+      customUrl,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3
     });
-
-    if (!response.ok) {
-      throw new Error(`Summarization failed: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content.trim();
+    return extractChoiceContent(data).trim() || currentLedger;
   } catch (error) {
     console.error("Error updating Truth Ledger:", error);
     return currentLedger; // Fallback to current ledger on error
@@ -616,4 +580,3 @@ export function compileRoomTension(roomCharacters, userName) {
 
   return relationsText;
 }
-

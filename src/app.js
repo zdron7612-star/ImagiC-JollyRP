@@ -1,6 +1,6 @@
 import { presets } from './presets.js';
 import { scanLorebook, synthesizeSystemPrompt, synthesizeRoomSystemPrompt, buildApiMessages, summarizeToLedger, replacePlaceholders } from './memory.js';
-import { streamChatCompletion, FREE_MODELS } from './api.js';
+import { streamChatCompletion, fetchChatCompletionJson, extractChoiceContent, FREE_MODELS } from './api.js';
 import { soundManager } from './sounds.js';
 
 // Utility functions for text formatting locale keys
@@ -381,6 +381,12 @@ class JollyRPApp {
           } else {
             requiresUpload = true;
           }
+          if (data.settings.customApiUrls) {
+            this.customApiUrls = { ...this.customApiUrls, ...data.settings.customApiUrls };
+          } else if (data.settings.customApiUrl) {
+            this.customApiUrls.custom = data.settings.customApiUrl;
+            requiresUpload = true;
+          }
           if (data.settings.apiFallbacks) {
             this.apiFallbacks = data.settings.apiFallbacks;
           } else if ((this.apiFallbacks.openrouter && this.apiFallbacks.openrouter.length > 0) || (this.apiFallbacks.custom && this.apiFallbacks.custom.length > 0)) {
@@ -391,7 +397,10 @@ class JollyRPApp {
           } else {
             requiresUpload = true;
           }
-          if (data.settings.customApiUrl) this.customApiUrl = data.settings.customApiUrl;
+          this.apiKey = this.apiKeys[this.apiProvider] || data.settings.apiKey || '';
+          this.activeModel = this.apiModels[this.apiProvider] || this.activeModel;
+          this.customApiUrl = this.customApiUrls[this.apiProvider] || '';
+          this.instructTemplate = this.instructTemplates[this.apiProvider] || this.instructTemplate;
           if (data.settings.favorites) {
             localStorage.setItem('jollyrp_favorites', JSON.stringify(data.settings.favorites));
           }
@@ -591,6 +600,7 @@ class JollyRPApp {
             apiModels: this.apiModels,
             apiFallbacks: this.apiFallbacks,
             instructTemplates: this.instructTemplates,
+            customApiUrls: this.customApiUrls,
             customApiUrl: this.customApiUrl,
             favorites: favorites,
             nsfwEnabled: this.nsfwEnabled,
@@ -639,8 +649,6 @@ class JollyRPApp {
     // Try loading from server first
     await this.loadDataFromServer();
 
-    this.renderCharacterLists();
-    
     // Restore state
     if (this.apiProvider) {
       this.elements.providerSelect.value = this.apiProvider;
@@ -910,6 +918,7 @@ class JollyRPApp {
         this.showLandingScreen();
       });
     }
+
     const btnNewChat = document.getElementById('btn-new-chat');
     if (btnNewChat) {
       btnNewChat.addEventListener('click', () => {
@@ -2421,6 +2430,7 @@ class JollyRPApp {
       return a.name.localeCompare(b.name);
     }).slice(0, 10);
 
+    const sidebarFragment = document.createDocumentFragment();
     sortedActiveCast.forEach(char => {
       // Sidebar list item
       const item = document.createElement('div');
@@ -2436,14 +2446,17 @@ class JollyRPApp {
           <div class="char-tagline">${escapeHTML(char.tagline)}</div>
         </div>
       `;
-      this.elements.sidebarCharList.appendChild(item);
+      sidebarFragment.appendChild(item);
     });
+    this.elements.sidebarCharList.appendChild(sidebarFragment);
 
     // Render room list in sidebar
     this.renderRoomList();
 
-    // Render landing presets grid via unified filters rendering
-    this.renderPresetsGrid();
+    // Render landing presets grid via unified filters rendering ONLY if landing screen is visible
+    if (this.elements.landingScreen && this.elements.landingScreen.style.display !== 'none') {
+      this.renderPresetsGrid();
+    }
   }
 
   async renderPresetsGrid() {
@@ -2557,6 +2570,7 @@ class JollyRPApp {
         
         this.communityCharacters = nodes;
         this.elements.presetCardsGrid.innerHTML = '';
+        const communityFragment = document.createDocumentFragment();
 
         // Harvest tags from community characters for the filter bar
         const uniqueTags = new Set();
@@ -2620,8 +2634,8 @@ class JollyRPApp {
           return;
         }
 
+        const favs = JSON.parse(localStorage.getItem('jollyrp_favorites')) || [];
         nodes.forEach(char => {
-          const favs = JSON.parse(localStorage.getItem('jollyrp_favorites')) || [];
           const isFav = favs.some(fId => fId === `chub_${char.id}` || this.characters.some(lc => lc.id === fId && lc.creator === 'Chub.ai' && lc.avatar.includes(char.avatar_url)));
           const isNsfw = char.nsfw_image || (char.topics && char.topics.some(t => t.toLowerCase() === 'nsfw'));
           const shouldBlur = isNsfw && this.nsfwBlur;
@@ -2779,8 +2793,10 @@ class JollyRPApp {
             });
           }
 
-          this.elements.presetCardsGrid.appendChild(card);
+          communityFragment.appendChild(card);
         });
+        
+        this.elements.presetCardsGrid.appendChild(communityFragment);
 
         const totalPages = Math.ceil(count / limit) || 1;
         this.updatePaginationUi(totalPages);
@@ -2818,6 +2834,12 @@ class JollyRPApp {
       });
     }
 
+    const messageCountsByChar = new Map();
+    Object.entries(this.sessions || {}).forEach(([charId, chats]) => {
+      const total = (chats || []).reduce((sum, chat) => sum + ((chat.messages || []).length), 0);
+      messageCountsByChar.set(charId, total);
+    });
+
     // 2. Category filter
     if (cat === 'presets') {
       list = list.filter(c => presetIds.includes(c.id));
@@ -2825,10 +2847,7 @@ class JollyRPApp {
       list = list.filter(c => !presetIds.includes(c.id));
     } else if (cat === 'trending') {
       list.forEach(c => {
-        const chats = this.sessions[c.id] || [];
-        let totalMsgs = 0;
-        chats.forEach(ch => totalMsgs += ch.messages.length);
-        c._score = totalMsgs;
+        c._score = messageCountsByChar.get(c.id) || 0;
       });
       list.sort((a, b) => b._score - a._score);
     } else if (cat === 'favorites') {
@@ -2954,16 +2973,16 @@ class JollyRPApp {
     const paginatedList = list.slice(startIdx, endIdx);
 
     this.updatePaginationUi(totalPages);
+    
+    const fragment = document.createDocumentFragment();
 
+    const favs = JSON.parse(localStorage.getItem('jollyrp_favorites')) || [];
     paginatedList.forEach(char => {
-      const favs = JSON.parse(localStorage.getItem('jollyrp_favorites')) || [];
       const isFav = favs.includes(char.id);
       const charTags = char.tags || ["Roleplay", "Anime"];
       const tagsHTML = charTags.map(t => `<span class="preset-card-tag-badge">#${escapeHTML(t)}</span>`).join('');
 
-      const chats = this.sessions[char.id] || [];
-      let totalMsgs = 0;
-      chats.forEach(ch => totalMsgs += ch.messages.length);
+      const totalMsgs = messageCountsByChar.get(char.id) || 0;
       const chatLabel = totalMsgs > 0 ? `💬 ${totalMsgs} msg${totalMsgs !== 1 ? 's' : ''}` : `✨ New`;
       const tokenCount = char.description ? Math.ceil(char.description.length / 4) + 150 : 220;
 
@@ -3078,8 +3097,10 @@ class JollyRPApp {
         });
       }
 
-      this.elements.presetCardsGrid.appendChild(card);
+      fragment.appendChild(card);
     });
+    
+    this.elements.presetCardsGrid.appendChild(fragment);
   }
 
   showLandingScreen() {
@@ -3388,9 +3409,11 @@ class JollyRPApp {
         this.elements.chatHeaderTagline.textContent = char.tagline;
 
         this.renderChatThread();
-        this.renderMemoryLedger();
-        this.renderCharacterLists();
-        this.generateSuggestedChoices();
+        this.scheduleIdleWork(() => {
+          this.renderMemoryLedger();
+          this.renderCharacterLists();
+          this.generateSuggestedChoices();
+        }, 500);
       });
 
       // Rename & Delete Actions
@@ -4044,11 +4067,17 @@ class JollyRPApp {
     const container = this.elements.myChatsContainer;
     if (!container) return;
     
+    // Skip rendering if the landing screen is hidden to prevent lag during active chats
+    if (this.elements.landingScreen && this.elements.landingScreen.style.display === 'none') {
+      return;
+    }
+    
     container.innerHTML = '';
     
     const activeChats = [];
+    const charsById = new Map(this.characters.map(char => [char.id, char]));
     Object.keys(this.sessions).forEach(charId => {
-      const char = this.characters.find(c => c.id === charId);
+      const char = charsById.get(charId);
       if (!char) return;
       
       const chats = this.sessions[charId] || [];
@@ -4070,6 +4099,7 @@ class JollyRPApp {
       return;
     }
     
+    const fragment = document.createDocumentFragment();
     activeChats.forEach(item => {
       let lastTime = item.chat.createdAt || 0;
       if (item.chat.messages && item.chat.messages.length > 0) {
@@ -4134,8 +4164,9 @@ class JollyRPApp {
         this.startExistingChat(item.charId, item.chat.id);
       });
       
-      container.appendChild(card);
+      fragment.appendChild(card);
     });
+    container.appendChild(fragment);
   }
 
   startExistingChat(charId, chatId) {
@@ -4153,10 +4184,12 @@ class JollyRPApp {
     this.elements.chatHeaderTagline.textContent = char.tagline;
     
     this.renderChatThread();
-    this.renderMemoryLedger();
-    this.renderCharacterLists();
-    this.renderConversationsList();
-    this.generateSuggestedChoices();
+    this.scheduleIdleWork(() => {
+      this.renderMemoryLedger();
+      this.renderCharacterLists();
+      this.renderConversationsList();
+      this.generateSuggestedChoices();
+    }, 500);
   }
 
   getActiveSession() {
@@ -4214,8 +4247,10 @@ class JollyRPApp {
 
     this.saveSessions();
     this.renderChatThread();
-    this.renderMemoryLedger();
-    this.renderConversationsList();
+    this.scheduleIdleWork(() => {
+      this.renderMemoryLedger();
+      this.renderConversationsList();
+    }, 500);
     if (typeof this.renderTimelineTree === 'function') {
       this.renderTimelineTree();
     }
@@ -4483,6 +4518,7 @@ class JollyRPApp {
         thread.appendChild(loadMoreBtn);
       }
 
+      const fragment = document.createDocumentFragment();
       slicedMessages.forEach((msg, idx) => {
         const originalIndex = startIndex + idx;
         let speakerChar = null;
@@ -4495,13 +4531,14 @@ class JollyRPApp {
           }
           if (!speakerChar) speakerChar = chars[0];
         }
-        this.appendRoomMessageToDom(msg.role, msg.content, originalIndex, msg.id, speakerChar);
+        this.appendRoomMessageToDom(msg.role, msg.content, originalIndex, msg.id, speakerChar, fragment, true);
       });
+      thread.appendChild(fragment);
 
       if (shouldScrollToBottom) {
         this.scrollToBottom();
       }
-      this.analyzeMoodAndApplyTheme();
+      this.scheduleIdleWork(() => this.analyzeMoodAndApplyTheme());
       // Re-render speaker strip
       this.renderSpeakerStrip(chat);
       return;
@@ -4547,17 +4584,19 @@ class JollyRPApp {
       thread.appendChild(loadMoreBtn);
     }
 
+    const fragment = document.createDocumentFragment();
     slicedMessages.forEach((msg, idx) => {
       const originalIndex = startIndex + idx;
-      this.appendMessageToDom(msg.role, msg.content, originalIndex, msg.id);
+      this.appendMessageToDom(msg.role, msg.content, originalIndex, msg.id, fragment, true);
     });
+    thread.appendChild(fragment);
 
     if (shouldScrollToBottom) {
       this.scrollToBottom();
     }
   }
 
-  appendMessageToDom(role, text, index, msgId = null) {
+  appendMessageToDom(role, text, index, msgId = null, parent = this.elements.chatThread, deferEffects = false) {
     const char = this.characters.find(c => c.id === this.activeCharacterId);
     if (!char) return null;
 
@@ -4768,9 +4807,9 @@ class JollyRPApp {
       }
     }
 
-    this.elements.chatThread.appendChild(bubble);
+    parent.appendChild(bubble);
 
-    if (emotion !== 'default' && activeChat && index === activeChat.messages.length - 1) {
+    if (!deferEffects && emotion !== 'default' && activeChat && index === activeChat.messages.length - 1) {
       this.spawnMoodParticles(bubble.querySelector('.avatar-container'), emotion);
     }
     return bubble;
@@ -5006,7 +5045,7 @@ class JollyRPApp {
     const textNode = bubble ? bubble.querySelector('.msg-content') : null;
 
     this.activeStreamController = new AbortController();
-    this.elements.btnSendMessage.disabled = true;
+    this.setGeneratingState(true);
     let assistantResponse = '';
 
     this.executeChatWithFallbacks({
@@ -5033,7 +5072,7 @@ class JollyRPApp {
         this.scrollToBottom();
       },
       onFinish: async (fullText) => {
-        this.elements.btnSendMessage.disabled = false;
+        this.setGeneratingState(false);
         this.activeStreamController = null;
 
         const cleanedFullText = this.replacePlaceholders(fullText, char.name, activePersona.name || 'User');
@@ -5062,7 +5101,7 @@ class JollyRPApp {
         this.generateSuggestedChoices();
       },
       onError: (err) => {
-        this.elements.btnSendMessage.disabled = false;
+        this.setGeneratingState(false);
         this.activeStreamController = null;
         // Roll back the loading swipe
         if (targetMsg.swipes[targetMsg.swipeId] === '...') {
@@ -5071,8 +5110,14 @@ class JollyRPApp {
           targetMsg.content = targetMsg.swipes[targetMsg.swipeId] || '';
           this.saveSessions(true);
         }
-        if (textNode) {
-          textNode.innerHTML = `<span style="color: var(--accent-crimson);">[Regen error: ${err.message}]</span>`;
+        if (err.name === 'AbortError' || err.message.toLowerCase().includes('abort')) {
+          if (textNode) {
+            textNode.innerHTML = this.formatAssistantText(targetMsg.content);
+          }
+        } else {
+          if (textNode) {
+            textNode.innerHTML = `<span style="color: var(--accent-crimson);">[Regen error: ${err.message}]</span>`;
+          }
         }
       }
     });
@@ -5134,8 +5179,41 @@ class JollyRPApp {
     }
   }
 
+  setGeneratingState(isGenerating) {
+    const btn = this.elements.btnSendMessage;
+    if (!btn) return;
+    if (isGenerating) {
+      btn.classList.add('is-generating');
+      btn.title = "Stop Generation";
+      btn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        </svg>
+      `;
+    } else {
+      btn.classList.remove('is-generating');
+      btn.title = "Send Message";
+      btn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      `;
+    }
+  }
+
   scrollToBottom() {
     this.elements.chatThread.scrollTop = this.elements.chatThread.scrollHeight;
+  }
+
+  scheduleIdleWork(callback, timeout = 250) {
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(callback, { timeout });
+      return;
+    }
+    setTimeout(callback, 0);
   }
 
   openCharacterStudio() {
@@ -5943,7 +6021,12 @@ ${nsfwInstructions}
 
   async handleSendMessage(customText = '') {
     if (this.activeStreamController) {
-      console.warn("A stream completion is currently active. Ignoring send request.");
+      this.activeStreamController.abort();
+      this.activeStreamController = null;
+      this.setGeneratingState(false);
+      if (this.elements.btnTriggerNext) {
+        this.elements.btnTriggerNext.disabled = false;
+      }
       return;
     }
 
@@ -6011,7 +6094,7 @@ ${nsfwInstructions}
     let assistantResponse = "";
     
     // Disable inputs during streaming
-    this.elements.btnSendMessage.disabled = true;
+    this.setGeneratingState(true);
     
     this.executeChatWithFallbacks({
       apiKey: this.apiKey,
@@ -6038,7 +6121,7 @@ ${nsfwInstructions}
         this.scrollToBottom();
       },
       onFinish: async (fullText) => {
-        this.elements.btnSendMessage.disabled = false;
+        this.setGeneratingState(false);
         this.activeStreamController = null;
         
         const cleanedFullText = this.replacePlaceholders(fullText, char.name, activePersona.name || 'User');
@@ -6170,7 +6253,7 @@ ${nsfwInstructions}
         }
       },
       onError: (err) => {
-        this.elements.btnSendMessage.disabled = false;
+        this.setGeneratingState(false);
         this.activeStreamController = null;
         console.error("Stream completion error:", err);
         
@@ -6187,14 +6270,18 @@ ${nsfwInstructions}
           this.saveSessions();
           this.renderChatThread();
         } else {
-          // If no text was received, show the error in the temporary bubble so the user knows what went wrong.
-          // Mark it as an error-only bubble so the delete button can surgically remove it from the DOM
-          // even though it was never committed to session.messages.
-          bubble.setAttribute('data-error-bubble', 'true');
-          textNode.innerHTML = `<span style="color: var(--accent-crimson);">[Error: ${err.message}]</span>`;
-          // Show delete button immediately so the user can dismiss the error easily
-          const errDeleteBtn = bubble.querySelector('.msg-delete-btn');
-          if (errDeleteBtn) errDeleteBtn.style.display = 'inline-flex';
+          if (err.name === 'AbortError' || err.message.toLowerCase().includes('abort')) {
+            bubble.remove();
+          } else {
+            // If no text was received, show the error in the temporary bubble so the user knows what went wrong.
+            // Mark it as an error-only bubble so the delete button can surgically remove it from the DOM
+            // even though it was never committed to session.messages.
+            bubble.setAttribute('data-error-bubble', 'true');
+            textNode.innerHTML = `<span style="color: var(--accent-crimson);">[Error: ${err.message}]</span>`;
+            // Show delete button immediately so the user can dismiss the error easily
+            const errDeleteBtn = bubble.querySelector('.msg-delete-btn');
+            if (errDeleteBtn) errDeleteBtn.style.display = 'inline-flex';
+          }
         }
       }
     });
@@ -8103,7 +8190,7 @@ WRITING RULES:
     const textNode = bubble ? bubble.querySelector('.msg-content') : null;
 
     this.activeStreamController = new AbortController();
-    this.elements.btnSendMessage.disabled = true;
+    this.setGeneratingState(true);
     if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = true;
 
     let assistantResponse = "";
@@ -8131,7 +8218,7 @@ WRITING RULES:
         this.scrollToBottom();
       },
       onFinish: async fullText => {
-        this.elements.btnSendMessage.disabled = false;
+        this.setGeneratingState(false);
         if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = false;
         this.activeStreamController = null;
 
@@ -8150,10 +8237,25 @@ WRITING RULES:
         this.generateSuggestedChoices();
       },
       onError: err => {
-        this.elements.btnSendMessage.disabled = false;
+        this.setGeneratingState(false);
         if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = false;
         this.activeStreamController = null;
-        if (textNode) textNode.innerHTML = `<span style="color:var(--accent-crimson);">[Error: ${err.message}]</span>`;
+        if (assistantResponse && assistantResponse.trim()) {
+          const cleaned = this.replacePlaceholders(assistantResponse, char.name, activePersona.name || 'User');
+          session.messages.push({
+            role: 'assistant',
+            content: cleaned,
+            id: assistantMsgId,
+            swipes: [cleaned],
+            swipeId: 0
+          });
+          this.saveSessions();
+          this.renderChatThread();
+        } else if (err.name === 'AbortError' || err.message.toLowerCase().includes('abort')) {
+          if (bubble) bubble.remove();
+        } else if (textNode) {
+          textNode.innerHTML = `<span style="color:var(--accent-crimson);">[Error: ${err.message}]</span>`;
+        }
       }
     });
   }
@@ -8262,7 +8364,7 @@ WRITING RULES:
     const bubble = this.appendRoomMessageToDom('assistant', '...', chat.messages.length, assistantMsgId, activeSpeakerChar);
     const textNode = bubble ? bubble.querySelector('.msg-content') : null;
 
-    this.elements.btnSendMessage.disabled = true;
+    this.setGeneratingState(true);
     if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = true;
     this.activeStreamController = new AbortController();
     let assistantResponse = '';
@@ -8305,7 +8407,7 @@ WRITING RULES:
         this.scrollToBottom();
       },
       onFinish: async fullText => {
-        this.elements.btnSendMessage.disabled = false;
+        this.setGeneratingState(false);
         if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = false;
         this.activeStreamController = null;
 
@@ -8343,10 +8445,33 @@ WRITING RULES:
         }
       },
       onError: err => {
-        this.elements.btnSendMessage.disabled = false;
+        this.setGeneratingState(false);
         if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = false;
         this.activeStreamController = null;
-        if (textNode) textNode.innerHTML = `<span style="color:var(--accent-crimson);">[Error: ${err.message}]</span>`;
+        if (assistantResponse && assistantResponse.trim()) {
+          let speakerChar = activeSpeakerChar;
+          const parsed = this.parseRoomSpeaker(assistantResponse, chars);
+          if (parsed) speakerChar = parsed;
+          const cleaned = this.replacePlaceholders(assistantResponse, speakerChar.name, activePersona ? activePersona.name : 'User');
+          chat.messages.push({
+            role: 'assistant',
+            content: cleaned,
+            id: assistantMsgId,
+            swipes: [cleaned],
+            swipeId: 0,
+            roomSpeakerId: speakerChar.id
+          });
+          chat.roomActiveSpeaker = speakerChar.id;
+          this.saveSessions();
+          this.renderSpeakerStrip(chat);
+          this.renderChatThread();
+        } else {
+          if (err.name === 'AbortError' || err.message.toLowerCase().includes('abort')) {
+            if (bubble) bubble.remove();
+          } else if (textNode) {
+            textNode.innerHTML = `<span style="color:var(--accent-crimson);">[Error: ${err.message}]</span>`;
+          }
+        }
       }
     });
   }
@@ -8380,7 +8505,7 @@ WRITING RULES:
   }
 
   /** Appends a room-aware message bubble, resolving the actual speaker from [Name]: prefix. */
-  appendRoomMessageToDom(role, text, index, msgId, fallbackChar) {
+  appendRoomMessageToDom(role, text, index, msgId, fallbackChar, parent = this.elements.chatThread, deferEffects = false) {
     const chat = this.getRoomSession();
     const charIds = chat ? (chat.roomCharIds || []) : [];
     const chars = charIds.map(id => this.characters.find(c => c.id === id)).filter(Boolean);
@@ -8400,7 +8525,7 @@ WRITING RULES:
           <div class="msg-content"><span style="opacity:0.55;font-style:italic;animation:pulse 1.5s ease-in-out infinite;">Crafting your opening scene...</span></div>
         </div>
       `;
-      this.elements.chatThread.appendChild(bubble);
+      parent.appendChild(bubble);
       return bubble;
     }
 
@@ -8608,9 +8733,9 @@ WRITING RULES:
       }
     }
 
-    this.elements.chatThread.appendChild(bubble);
+    parent.appendChild(bubble);
 
-    if (emotion !== 'default' && chat && index === chat.messages.length - 1) {
+    if (!deferEffects && emotion !== 'default' && chat && index === chat.messages.length - 1) {
       this.spawnMoodParticles(bubble.querySelector('.avatar-container'), emotion);
     }
     return bubble;
@@ -8715,7 +8840,7 @@ WRITING RULES:
     const existingBubble = this.elements.chatThread.querySelector(`[data-msg-id="${msgId}"]`);
     const textNode = existingBubble ? existingBubble.querySelector('.msg-content') : null;
 
-    this.elements.btnSendMessage.disabled = true;
+    this.setGeneratingState(true);
     if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = true;
     this.activeStreamController = new AbortController();
     let newResponse = '';
@@ -8757,7 +8882,7 @@ WRITING RULES:
         this.scrollToBottom();
       },
       onFinish: async fullText => {
-        this.elements.btnSendMessage.disabled = false;
+        this.setGeneratingState(false);
         if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = false;
         this.activeStreamController = null;
 
@@ -8788,10 +8913,20 @@ WRITING RULES:
         }
       },
       onError: err => {
-        this.elements.btnSendMessage.disabled = false;
+        this.setGeneratingState(false);
         if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = false;
         this.activeStreamController = null;
-        if (textNode) textNode.innerHTML = `<span style="color:var(--accent-crimson);">[Error: ${err.message}]</span>`;
+        if (chat.messages[msgIndex].swipes[chat.messages[msgIndex].swipeId] === '...') {
+          chat.messages[msgIndex].swipes.pop();
+          chat.messages[msgIndex].swipeId = chat.messages[msgIndex].swipes.length - 1;
+          chat.messages[msgIndex].content = chat.messages[msgIndex].swipes[chat.messages[msgIndex].swipeId] || '';
+          this.saveSessions(true);
+        }
+        if (err.name === 'AbortError' || err.message.toLowerCase().includes('abort')) {
+          if (textNode) textNode.innerHTML = this.formatAssistantText(this.stripRoomPrefix(chat.messages[msgIndex].content));
+        } else {
+          if (textNode) textNode.innerHTML = `<span style="color:var(--accent-crimson);">[Error: ${err.message}]</span>`;
+        }
       }
     });
   }
@@ -9103,47 +9238,18 @@ Example output:
         </span>
       `;
 
-      let endpointUrl = "";
-      let headers = {
-        "Content-Type": "application/json"
-      };
-
-      if (this.apiProvider === 'openrouter') {
-        endpointUrl = "https://openrouter.ai/api/v1/chat/completions";
-        headers["Authorization"] = `Bearer ${this.apiKey}`;
-        headers["HTTP-Referer"] = "https://jollyrp.ai";
-        headers["X-Title"] = "JollyRP client";
-      } else if (this.apiProvider === 'custom') {
-        let baseUrl = this.customApiUrl.trim().replace(/\/$/, '');
-        try {
-          const parsedUrl = new URL(baseUrl);
-          if (parsedUrl.pathname === '' || parsedUrl.pathname === '/') {
-            baseUrl += '/v1';
-          }
-        } catch (e) {}
-        endpointUrl = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
-        if (this.apiKey) {
-          headers["Authorization"] = `Bearer ${this.apiKey}`;
+      const data = await fetchChatCompletionJson({
+        apiKey: this.apiKey,
+        model: this.activeModel,
+        provider: this.apiProvider,
+        customUrl: this.customApiUrl,
+        messages: apiMessages,
+        temperature: 0.8,
+        extraParams: {
+          max_tokens: 150
         }
-      }
-
-      const response = await fetch(endpointUrl, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify({
-          model: this.activeModel,
-          messages: apiMessages,
-          max_tokens: 150,
-          temperature: 0.8
-        })
       });
-
-      if (!response.ok) {
-        throw new Error(`Choices generation failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const rawContent = data.choices[0].message.content.trim();
+      const rawContent = extractChoiceContent(data).trim();
       
       let cleanJson = rawContent;
       if (cleanJson.startsWith('```')) {

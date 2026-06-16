@@ -12,6 +12,161 @@ export const FREE_MODELS = [
   }
 ];
 
+export function buildChatCompletionRequest({
+  apiKey,
+  model,
+  messages,
+  temperature = 0.8,
+  provider = 'openrouter',
+  customUrl = '',
+  extraParams = {},
+  stream = false
+}) {
+  let endpointUrl = "";
+  const headers = {
+    "Content-Type": "application/json"
+  };
+
+  if (provider === 'openrouter') {
+    endpointUrl = "https://openrouter.ai/api/v1/chat/completions";
+    if (apiKey) {
+      headers["Authorization"] = `Bearer ${apiKey}`;
+    }
+    headers["HTTP-Referer"] = "https://jollyrp.ai";
+    headers["X-Title"] = "JollyRP client";
+  } else if (provider === 'custom') {
+    const trimmedUrl = (customUrl || '').trim();
+    if (!trimmedUrl) {
+      throw new Error("Custom API URL is missing. Please add an OpenAI-compatible endpoint in Settings.");
+    }
+
+    let baseUrl = trimmedUrl.replace(/\/$/, '');
+    try {
+      const parsedUrl = new URL(baseUrl);
+      if (parsedUrl.pathname === '' || parsedUrl.pathname === '/') {
+        baseUrl += '/v1';
+      }
+    } catch (e) {
+      throw new Error("Custom API URL is invalid. Include the protocol, for example http://localhost:11434/v1.");
+    }
+
+    endpointUrl = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
+    if (apiKey) {
+      headers["Authorization"] = `Bearer ${apiKey}`;
+    }
+  } else {
+    throw new Error(`Unsupported API provider: ${provider}`);
+  }
+
+  const requestBody = {
+    messages,
+    temperature: parseFloat(temperature),
+    stream: !!stream
+  };
+
+  if (model) {
+    requestBody.model = model;
+  } else if (provider === 'openrouter') {
+    requestBody.model = 'openrouter/free';
+  }
+
+  const isCustomOpenAI = provider === 'custom' && endpointUrl.includes('openai.com');
+
+  if (extraParams.top_p !== undefined) {
+    requestBody.top_p = parseFloat(extraParams.top_p);
+  }
+
+  if (extraParams.max_tokens !== undefined) {
+    requestBody.max_tokens = parseInt(extraParams.max_tokens);
+  }
+
+  if (extraParams.top_k !== undefined && parseInt(extraParams.top_k) > 0 && !isCustomOpenAI) {
+    requestBody.top_k = parseInt(extraParams.top_k);
+  }
+
+  if (extraParams.repetition_penalty !== undefined && parseFloat(extraParams.repetition_penalty) !== 1.0) {
+    if (isCustomOpenAI) {
+      const rep = parseFloat(extraParams.repetition_penalty);
+      requestBody.frequency_penalty = Math.min(2.0, Math.max(0.0, (rep - 1.0) * 2.0));
+    } else {
+      requestBody.repetition_penalty = parseFloat(extraParams.repetition_penalty);
+    }
+  }
+
+  const modelLower = (model || '').toLowerCase();
+  const isThinkingModel =
+    modelLower.includes('qwen') ||
+    modelLower.includes('deepseek') ||
+    modelLower.includes('-r1') ||
+    modelLower.includes('reasoning');
+
+  if (provider === 'openrouter' && isThinkingModel) {
+    requestBody.reasoning_format = "hidden";
+  }
+
+  if (provider === 'custom') {
+    return {
+      url: '/api/proxy/completion',
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        endpointUrl,
+        headers,
+        requestBody
+      },
+      endpointUrl,
+      requestBody
+    };
+  }
+
+  return {
+    url: endpointUrl,
+    headers,
+    body: requestBody,
+    endpointUrl,
+    requestBody
+  };
+}
+
+export function extractChoiceContent(data, { includeReasoning = true } = {}) {
+  const choice = data?.choices?.[0] || {};
+  const message = choice.message || {};
+  const delta = choice.delta || {};
+  return (
+    delta.content ||
+    message.content ||
+    choice.text ||
+    data?.content ||
+    (includeReasoning ? (delta.reasoning_content || message.reasoning_content) : '') ||
+    ''
+  );
+}
+
+export async function fetchChatCompletionJson(options) {
+  const request = buildChatCompletionRequest({
+    ...options,
+    stream: false
+  });
+
+  const response = await fetch(request.url, {
+    method: "POST",
+    headers: request.headers,
+    body: JSON.stringify(request.body),
+    signal: options.signal
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    let parsedErr;
+    try {
+      parsedErr = JSON.parse(errText);
+    } catch (e) {}
+    const errorMsg = parsedErr?.error?.message || `API error (${response.status}): ${response.statusText}`;
+    throw new Error(errorMsg);
+  }
+
+  return response.json();
+}
+
 /**
  * Sends messages to the selected API provider and streams the response back.
  */
@@ -33,109 +188,22 @@ export async function streamChatCompletion({
     return;
   }
 
-  let endpointUrl = "";
-  let headers = {
-    "Content-Type": "application/json"
-  };
-
-  if (provider === 'openrouter') {
-    endpointUrl = "https://openrouter.ai/api/v1/chat/completions";
-    headers["Authorization"] = `Bearer ${apiKey}`;
-    headers["HTTP-Referer"] = "https://jollyrp.ai";
-    headers["X-Title"] = "JollyRP client";
-  } else if (provider === 'custom') {
-    let baseUrl = (customUrl || '').trim().replace(/\/$/, '');
-    try {
-      const parsedUrl = new URL(baseUrl);
-      if (parsedUrl.pathname === '' || parsedUrl.pathname === '/') {
-        baseUrl += '/v1';
-      }
-    } catch (e) {
-      // Ignore URL parsing errors and fallback to baseUrl
-    }
-    endpointUrl = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
-    if (apiKey) {
-      headers["Authorization"] = `Bearer ${apiKey}`;
-    }
-  }
-
-  // Identify if this is a known reasoning model
-  const modelName = model || '';
-  const modelLower = modelName.toLowerCase();
-  const isThinkingModel = 
-    modelLower.includes('qwen') || 
-    modelLower.includes('deepseek') || 
-    modelLower.includes('-r1') || 
-    modelLower.includes('reasoning');
-
   try {
-    // Sanitize parameters to avoid 400 Bad Request on specific providers (like direct OpenAI)
-    const requestBody = {
-      messages: messages,
-      temperature: parseFloat(temperature),
+    const request = buildChatCompletionRequest({
+      apiKey,
+      model,
+      messages,
+      temperature,
+      provider,
+      customUrl,
+      extraParams,
       stream: true
-    };
-    if (modelName) {
-      requestBody.model = modelName;
-    } else if (provider === 'openrouter') {
-      requestBody.model = 'openrouter/free';
-    }
+    });
 
-    const isCustomOpenAI = provider === 'custom' && endpointUrl.includes('openai.com');
-
-    // Add Top P
-    if (extraParams.top_p !== undefined) {
-      requestBody.top_p = parseFloat(extraParams.top_p);
-    }
-
-    // Add Max Tokens
-    if (extraParams.max_tokens !== undefined) {
-      requestBody.max_tokens = parseInt(extraParams.max_tokens);
-    }
-
-    // Add Top K if supported (Not supported by OpenAI)
-    if (extraParams.top_k !== undefined && parseInt(extraParams.top_k) > 0) {
-      if (!isCustomOpenAI) {
-        requestBody.top_k = parseInt(extraParams.top_k);
-      }
-    }
-
-    // Add Repetition Penalty / Frequency Penalty mapping
-    if (extraParams.repetition_penalty !== undefined && parseFloat(extraParams.repetition_penalty) !== 1.0) {
-      if (isCustomOpenAI) {
-        // Map repetition_penalty (1.0 to 2.0) to frequency_penalty (0.0 to 2.0)
-        const rep = parseFloat(extraParams.repetition_penalty);
-        requestBody.frequency_penalty = Math.min(2.0, Math.max(0.0, (rep - 1.0) * 2.0));
-      } else {
-        requestBody.repetition_penalty = parseFloat(extraParams.repetition_penalty);
-      }
-    }
-
-    // Hardcoded API instruction to suppress reasoning text output (Only supported/needed on OpenRouter)
-    if (provider === 'openrouter' && isThinkingModel) {
-      requestBody.reasoning_format = "hidden";
-    }
-
-    let fetchUrl = endpointUrl;
-    let fetchHeaders = headers;
-    let fetchBody = requestBody;
-
-    if (provider === 'custom') {
-      fetchUrl = '/api/proxy/completion';
-      fetchHeaders = {
-        'Content-Type': 'application/json'
-      };
-      fetchBody = {
-        endpointUrl: endpointUrl,
-        headers: headers,
-        requestBody: requestBody
-      };
-    }
-
-    const response = await fetch(fetchUrl, {
+    const response = await fetch(request.url, {
       method: "POST",
-      headers: fetchHeaders,
-      body: JSON.stringify(fetchBody),
+      headers: request.headers,
+      body: JSON.stringify(request.body),
       signal: signal
     });
 
@@ -204,10 +272,7 @@ export async function streamChatCompletion({
             if (rawData === "[DONE]") continue;
             
             const parsed = JSON.parse(rawData);
-            const content = parsed.choices?.[0]?.delta?.content || 
-                            parsed.choices?.[0]?.message?.content || 
-                            parsed.choices?.[0]?.text || 
-                            "";
+            const content = extractChoiceContent(parsed, { includeReasoning: true });
             
             if (content) {
               processContent(content);
@@ -228,10 +293,7 @@ export async function streamChatCompletion({
           const rawData = cleanLine.substring(colonIdx + 1).trim();
           if (rawData !== "[DONE]") {
             const parsed = JSON.parse(rawData);
-            const content = parsed.choices?.[0]?.delta?.content || 
-                            parsed.choices?.[0]?.message?.content || 
-                            parsed.choices?.[0]?.text || 
-                            "";
+            const content = extractChoiceContent(parsed, { includeReasoning: true });
             if (content) {
               processContent(content);
             }
@@ -246,10 +308,7 @@ export async function streamChatCompletion({
       if (fullBuffer && (fullBuffer.startsWith("{") || fullBuffer.startsWith("["))) {
         try {
           const parsed = JSON.parse(fullBuffer);
-          const content = parsed.choices?.[0]?.message?.content || 
-                          parsed.choices?.[0]?.text || 
-                          parsed.content || 
-                          "";
+          const content = extractChoiceContent(parsed, { includeReasoning: true });
           if (content) {
             const cleanContent = stripThinkTags(content);
             if (cleanContent) {
@@ -275,11 +334,7 @@ export async function streamChatCompletion({
 
     onFinish(fullText);
   } catch (error) {
-    if (error.name === "AbortError") {
-      console.log("Stream fetch aborted.");
-    } else {
-      onError(error);
-    }
+    onError(error);
   }
 }
 
