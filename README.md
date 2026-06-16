@@ -6,14 +6,14 @@
   **A Premium, Fully Uncensored Local AI Roleplay Client.**
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-  [![Platform: Windows | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue)](https://github.com/YourUsername/JollyRP/releases)
+  [![Platform: Windows | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue)](https://github.com/zdron7612-star/ImagiC-JollyRP/releases)
   
   JollyRP is a stunning, high-performance desktop application designed for immersive, private, and uncensored interactions with AI characters. Built with a sleek glassmorphism UI and intelligent memory ledgers, it pushes the boundaries of AI text adventures.
 
   <br />
 
-  [![Download for Windows](https://img.shields.io/badge/Download-Windows%20.exe-0078D6?style=for-the-badge&logo=windows)](https://github.com/YourUsername/JollyRP/releases/latest)
-  [![Download for Linux](https://img.shields.io/badge/Download-Linux%20.deb-E95420?style=for-the-badge&logo=linux)](https://github.com/YourUsername/JollyRP/releases/latest)
+  [![Download for Windows](https://img.shields.io/badge/Download-Windows%20.exe-0078D6?style=for-the-badge&logo=windows)](https://github.com/zdron7612-star/ImagiC-JollyRP/releases/latest)
+  [![Download for Linux](https://img.shields.io/badge/Download-Linux%20.deb-E95420?style=for-the-badge&logo=linux)](https://github.com/zdron7612-star/ImagiC-JollyRP/releases/latest)
 </div>
 
 <br />
@@ -58,7 +58,7 @@
 ## 🚀 Installation
 
 ### Download the App
-Head over to the [Releases](https://github.com/YourUsername/JollyRP/releases) page to download the latest native installer:
+Head over to the [Releases](https://github.com/zdron7612-star/ImagiC-JollyRP/releases) page to download the latest native installer:
 - **Windows**: Download the `.exe` installer.
 - **Linux**: Download the `.deb` or `.AppImage`.
 
@@ -67,8 +67,8 @@ If you prefer to compile it yourself:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/YourUsername/JollyRP.git
-cd JollyRP
+git clone https://github.com/zdron7612-star/ImagiC-JollyRP.git
+cd ImagiC-JollyRP
 
 # 2. Install dependencies
 npm install
@@ -98,7 +98,7 @@ To run JollyRP locally in your browser for development purposes:
 ---
 
 ## 🤝 Contributing
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/YourUsername/JollyRP/issues).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/zdron7612-star/ImagiC-JollyRP/issues).
 
 ## 📝 License
 This project is licensed under the MIT License - see the `LICENSE` file for details.
