@@ -1,0 +1,59 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Node modules
+node_modules/
+
+# Local build outputs
+dist/
+dist-ssr/
+*.local
+
+# Editor configs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local storage data
+data/
+
+# Secure key
+data/.key
+
+# Electron Builder Output
+release/
+out/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# OS / System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Scratch / Temp directories
+scratch*/
+
+# Test sandboxes & results
+data_test/
+
+# Internal planning, recommendations & guides
+Feature_Recommendations.md
+nsfw_recommendations.md
+screenshot_guide.md
+
+# Tests and testing tools
+test-runner.js

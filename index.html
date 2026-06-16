@@ -1,0 +1,2364 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JollyRP 🎭 - Premium Uncensored AI Roleplay</title>
+  <meta name="description"
+    content="A premium, jolly, and highly unique AI Roleplay client. Bring Your Own Key, experience procedural soundscapes, and enjoy advanced memory ledgers.">
+  <link rel="stylesheet" href="./index.css">
+</head>
+<!-- Loading Screen Overlay -->
+<div id="loading-screen"
+  style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-primary); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; transition: opacity 0.5s ease, visibility 0.5s ease;">
+  <div id="loading-inner"
+    style="max-width: 600px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px;">
+    <img src="/logo.png" class="pulse-logo" alt="JollyRP Logo"
+      style="width: 64px; height: 64px; border-radius: 16px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 10px;" />
+    <h1
+      style="font-family: var(--font-brand); font-size: 34px; font-weight: 800; color: var(--accent-gold); margin: 0; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
+      Unleash Your Imagination</h1>
+    <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6; margin: 0; max-width: 500px;">
+      Welcome to <strong>JollyRP</strong>. A highly capable roleplay client working locally on your machine, free of
+      cost. Customize your characters, build multiple personas, chat with countless community-made models, and spice up
+      your roleplays with the vast NSFW catalogue.
+    </p>
+
+    <!-- Sleek thin loading bar -->
+    <div
+      style="width: 100%; max-width: 280px; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; margin-top: 15px; position: relative;">
+      <div id="loading-bar-fill"
+        style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent-gold), var(--accent-crimson)); transition: width 0.1s ease; border-radius: 2px;">
+      </div>
+    </div>
+    <div id="loading-text"
+      style="font-size: 10px; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 8px;">
+      Initializing Client...</div>
+  </div>
+
+  <!-- PIN Screen Card (Glassmorphic lock screen) -->
+  <div id="pin-screen-card" class="pin-card" style="display: none;">
+    <div class="pin-logo-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+        stroke="var(--bg-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="18" height="11" x="3" y="11" rx="2" ry="2" fill="var(--bg-primary)" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+    </div>
+    <h2>Private Pass</h2>
+    <p>Please enter your 4-digit security PIN to access your chats.</p>
+
+    <!-- Dots indicator -->
+    <div class="pin-dots">
+      <span class="pin-dot"></span>
+      <span class="pin-dot"></span>
+      <span class="pin-dot"></span>
+      <span class="pin-dot"></span>
+    </div>
+
+    <!-- Error msg -->
+    <div id="pin-error-msg" class="pin-error">Incorrect PIN, please try again.</div>
+
+    <!-- Keypad -->
+    <div class="pin-keypad">
+      <button class="pin-key" data-value="1">1</button>
+      <button class="pin-key" data-value="2">2</button>
+      <button class="pin-key" data-value="3">3</button>
+      <button class="pin-key" data-value="4">4</button>
+      <button class="pin-key" data-value="5">5</button>
+      <button class="pin-key" data-value="6">6</button>
+      <button class="pin-key" data-value="7">7</button>
+      <button class="pin-key" data-value="8">8</button>
+      <button class="pin-key" data-value="9">9</button>
+      <button class="pin-key pin-key-empty" style="pointer-events: none; opacity: 0;"></button>
+      <button class="pin-key" data-value="0">0</button>
+      <button class="pin-key pin-key-back" data-value="back">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+          <line x1="18" y1="9" x2="12" y2="15" />
+          <line x1="12" y1="9" x2="18" y2="15" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="app-container">
+  <!-- Navigation Header -->
+  <header
+    style="display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; min-height: 60px; box-sizing: border-box;">
+    <div class="logo-container" style="cursor: pointer;" title="Go to Home">
+      <button id="btn-toggle-left" class="btn" title="Toggle Cast List" style="padding: 6px 10px; margin-right: 4px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2" />
+          <path d="M9 3v18" />
+        </svg>
+      </button>
+      <div class="logo-icon">
+        <img src="/logo.png" alt="JollyRP Logo"
+          style="width: 28px; height: 28px; border-radius: 8px; box-shadow: 0 0 10px rgba(8, 232, 222, 0.3);" />
+      </div>
+      <div class="logo-text">JollyRP</div>
+    </div>
+
+    <!-- Top Middle Search Bar to search models -->
+    <div class="nav-search-container" style="flex: 1; max-width: 380px; margin: 0 24px; position: relative;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+        style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;">
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+      <input type="text" id="global-search-models" class="input-field" placeholder="Search models/companions..."
+        style="width: 100%; padding: 6px 12px 6px 34px; font-size: 13px; height: 36px; border-radius: 20px; box-sizing: border-box; background: var(--bg-tertiary); border: 1px solid var(--border-muted);">
+    </div>
+
+    <div class="nav-buttons" style="display: flex; gap: 6px; align-items: center;">
+
+      <!-- Divider group: icon-only ghost pills -->
+      <button id="btn-convo-history" class="btn nav-icon-btn" title="Chat History">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 8v4l3 3" />
+          <circle cx="12" cy="12" r="9" />
+        </svg>
+      </button>
+
+      <button id="btn-persona-manager" class="btn nav-icon-btn" title="Manage Personas">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      </button>
+
+      <!-- Thin separator -->
+      <div class="nav-sep"></div>
+
+      <!-- Primary CTA: Create Character -->
+      <button id="btn-open-studio" class="btn btn-primary nav-create-btn" title="Create a new character">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14" />
+          <path d="M12 5v14" />
+        </svg>
+        Create
+      </button>
+
+      <!-- Thin separator -->
+      <div class="nav-sep"></div>
+
+      <!-- Settings icon-only -->
+      <button id="btn-open-settings" class="btn nav-icon-btn" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </button>
+
+      <!-- Lock: icon-only, hidden unless PIN enabled -->
+      <button id="btn-lock-app" class="btn nav-icon-btn" style="display: none;" title="Lock Application">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      </button>
+
+    </div>
+  </header>
+
+  <!-- Key Warning Banner -->
+  <div id="key-warning" class="glass-panel"
+    style="display: none; margin: 12px 24px; padding: 12px 16px; border-color: var(--accent-gold); z-index: 5;">
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+      <span style="color: var(--accent-gold); font-weight: 600; display: flex; align-items: center; gap: 8px;">
+        ⚠️ Bring Your Own Key (BYOK) Required: Click "API Settings" to enter your free OpenRouter API key.
+      </span>
+      <a href="https://openrouter.ai/keys" target="_blank"
+        style="color: var(--accent-gold); text-decoration: underline; font-weight: 500;">Get Key Here</a>
+    </div>
+  </div>
+
+  <!-- MAIN VIEWPORT GRID -->
+  <main class="dashboard-grid">
+
+    <!-- LEFT SIDEBAR: Character Selection -->
+    <aside class="sidebar-left collapsed">
+      <div class="sidebar-inner" style="width: 240px; height: 100%; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;">
+        <div class="sidebar-title">
+          <span>Active Cast</span>
+          <button onclick="location.reload()" style="background:none; border:none; color:inherit; cursor:pointer;"
+            title="Refresh cast">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+              <path d="M16 16h5v5" />
+            </svg>
+          </button>
+        </div>
+        <div id="sidebar-char-list" class="character-list"
+          style="max-height: 35%; border-bottom: 1px solid var(--border-muted); overflow-y: auto;">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Rooms Sidebar Block -->
+        <div class="sidebar-title"
+          style="border-top: 1px solid var(--border-muted); display:flex; justify-content:space-between; align-items:center; padding: 12px 14px 8px 14px; box-sizing: border-box;">
+          <span>Rooms</span>
+          <button id="btn-create-room"
+            style="background:none; border:none; color:var(--accent-gold); cursor:pointer; display:flex; align-items:center; justify-content:center; padding:4px;"
+            title="Create room">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+        <div id="sidebar-room-list" class="character-list"
+          style="max-height: 20%; border-bottom: 1px solid var(--border-muted); overflow-y: auto;">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Conversations Sidebar Block -->
+        <div class="sidebar-title"
+          style="border-top: 1px solid var(--border-muted); display:flex; flex-direction:column; align-items:stretch; gap:6px; padding: 12px 14px 8px 14px; box-sizing: border-box;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Conversations</span>
+            <button id="btn-new-chat"
+              style="background:none; border:none; color:var(--accent-gold); cursor:pointer; display:flex; align-items:center; justify-content:center; padding:4px;"
+              title="New chat">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px; margin-top:2px;">
+            <label for="sidebar-select-persona" style="font-size: 10px; color: var(--accent-gold); font-weight: 600;">With
+              Persona:</label>
+            <select id="sidebar-select-persona" class="input-field"
+              style="padding: 2px 6px; font-size: 11px; height: 26px; width: 100%; box-sizing: border-box;">
+              <!-- JS populated -->
+            </select>
+          </div>
+        </div>
+        <div id="sidebar-chat-list" class="character-list" style="flex: 1; overflow-y: auto;">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- SCREEN A: LANDING SCREEN -->
+    <section id="landing-screen" class="landing-container">
+      <div class="landing-content-wrapper"
+        style="width: 100%; max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; align-items: stretch; text-align: left; padding-bottom: 80px; box-sizing: border-box;">
+
+        <!-- My Chats Section -->
+        <div id="my-chats-section"
+          style="display: flex; flex-direction: column; width: 100%; max-width: 100%; min-width: 0; overflow: hidden; margin-bottom: 28px;">
+          <div class="my-chats-header"
+            style="align-self: flex-start; display: flex; align-items: center; margin-bottom: 14px; margin-top: 10px;">
+            <span
+              style="background: linear-gradient(135deg, #7a5c8f, #bc4749); color: #fff; padding: 6px 18px; border-radius: 20px; font-size: 13.5px; font-weight: 600; font-family: var(--font-brand); box-shadow: 0 4px 10px rgba(122, 92, 143, 0.35); border: 1px solid rgba(255,255,255,0.15); letter-spacing: 0.5px;">My
+              Chats</span>
+          </div>
+          <div id="my-chats-container">
+            <!-- Dynamically populated active chats -->
+          </div>
+        </div>
+
+        <!-- Tag Filter Bar (Visible in Explore Mode) -->
+        <div id="tag-filter-bar"
+          style="display: none; flex-direction: column; gap: 8px; margin-bottom: 14px; padding: 14px 18px; background: var(--bg-secondary); border: 1px solid var(--border-muted); border-radius: var(--radius-md); box-sizing: border-box;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span
+                style="font-size: 13px; font-weight: 600; color: var(--accent-gold); font-family: var(--font-brand);">🏷️
+                Filter by Tag:</span>
+              <span id="active-tag-indicator"
+                style="font-size: 11px; background: rgba(188, 71, 73, 0.25); border: 1px solid rgba(188, 71, 73, 0.5); color: #ffb3b3; padding: 3px 8px; border-radius: 4px; display: none; align-items: center; gap: 6px;">
+                <span id="active-tag-text"></span>
+                <button id="btn-clear-tag"
+                  style="background: none; border: none; color: #fff; cursor: pointer; font-size: 11px; font-weight: bold; padding: 0 2px;">×</button>
+              </span>
+            </div>
+            <span id="tag-count-label"
+              style="font-size: 11px; color: var(--text-muted); font-family: var(--font-brand);"></span>
+          </div>
+          <div id="tag-pills-container"
+            style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; max-height: 120px; overflow-y: auto;">
+            <!-- Dynamic tags populate here -->
+          </div>
+        </div>
+
+        <!-- Source Selector: Local vs Chub AI Community -->
+        <div class="source-tabs-header">
+          <button id="btn-source-local" class="source-tab-btn active">
+            👤 My Companions
+          </button>
+          <button id="btn-source-community" class="source-tab-btn">
+            🌐 Chub AI Community
+          </button>
+        </div>
+
+        <!-- Dynamic Filter Controls -->
+        <div class="main-filters-wrapper"
+          style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; padding: 18px; background: var(--bg-secondary); border: 1px solid var(--border-muted); border-radius: var(--radius-md); box-sizing: border-box;">
+          <!-- Sort / Category (Local Only) -->
+          <div id="local-sort-row" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button class="filter-pill active" data-filter-type="category" data-value="all">
+              All Cast
+            </button>
+            <button class="filter-pill" data-filter-type="category" data-value="presets">
+              Built-in Presets
+            </button>
+            <button class="filter-pill" data-filter-type="category" data-value="custom">
+              Custom / Imported
+            </button>
+            <button class="filter-pill" data-filter-type="category" data-value="favorites">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                style="margin-right: 4px;">
+                <polygon
+                  points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              Favorites
+            </button>
+            <button class="filter-pill" data-filter-type="category" data-value="trending">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                style="margin-right: 4px;">
+                <path
+                  d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+              </svg>
+              Most Active
+            </button>
+          </div>
+
+          <!-- Row 2b: Community Sort (Community Only, hidden by default) -->
+          <div id="community-sort-row" style="display: none; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <span
+              style="font-size: 12.5px; color: var(--text-muted); margin-right: 6px; font-weight: 600; font-family: var(--font-brand);">Sort
+              By:</span>
+            <button class="filter-pill active" data-filter-type="community-sort"
+              data-value="download_count">Downloads</button>
+            <button class="filter-pill" data-filter-type="community-sort" data-value="star_count">Stars</button>
+            <button class="filter-pill" data-filter-type="community-sort" data-value="trending_ratio">🔥 Ratio</button>
+            <button class="filter-pill" data-filter-type="community-sort" data-value="hidden_gems">💎 Gems</button>
+            <button class="filter-pill" data-filter-type="community-sort" data-value="high_effort_recent">✨ Quality Recent</button>
+            <button class="filter-pill" data-filter-type="community-sort"
+              data-value="last_activity_at">Activity</button>
+            <button class="filter-pill" data-filter-type="community-sort" data-value="created_at">Recent</button>
+          </div>
+
+          <!-- Row 3: Timeframe -->
+          <div id="filter-timeframe-row" style="display: none; gap: 8px; align-items: center;">
+            <button class="filter-pill" data-filter-type="timeframe" data-value="24h">24h</button>
+            <button class="filter-pill active" data-filter-type="timeframe" data-value="weekly">Weekly</button>
+            <button class="filter-pill" data-filter-type="timeframe" data-value="alltime">All-Time</button>
+          </div>
+
+          <!-- Dynamic Info & Meta footer -->
+          <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; border-top: 1px solid var(--border-muted); padding-top: 10px; flex-wrap: wrap; gap: 8px;">
+            <div id="filter-explanation-text"
+              style="font-size: 12px; color: var(--text-muted); text-align: left;">
+              <span style="color: var(--accent-gold);">★</span> Showing all companions matching your filters.
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span id="filter-count-badge"
+                style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 12px; font-size: 11px; color: var(--text-main); border: 1px solid var(--border-muted);">
+                0 companions
+              </span>
+
+              <!-- Real Top Pagination -->
+              <div id="grid-pagination-controls-top" style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-muted);">
+                <button id="btn-pagination-top-prev" class="btn" style="padding: 2px 8px; font-size: 11px;">&lt;</button>
+                <span id="pagination-top-page-info" style="color: var(--text-main); font-weight: 600;">1 of 1</span>
+                <button id="btn-pagination-top-next" class="btn" style="padding: 2px 8px; font-size: 11px;">&gt;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          style="margin-bottom: 16px; font-family: var(--font-brand); font-size: 20px; color: var(--accent-gold); align-self: flex-start; text-align: left;">
+          Choose Your Companion</div>
+        <div id="preset-cards-grid" class="preset-cards-grid">
+          <!-- Presets populated by JS -->
+        </div>
+
+        <!-- Pagination Controls -->
+        <div id="grid-pagination-controls"
+          style="display: flex; align-items: center; justify-content: center; gap: 14px; margin: 24px 0 10px 0;">
+          <button id="btn-pagination-prev" class="btn btn-secondary"
+            style="padding: 6px 14px; font-size: 12.5px; border-radius: 6px; display: none;">← Prev</button>
+          <span id="pagination-page-info"
+            style="font-size: 13.5px; font-weight: 500; color: var(--accent-gold); font-family: var(--font-brand); display: none;">Page
+            1 of 1</span>
+          <button id="btn-pagination-next" class="btn btn-secondary"
+            style="padding: 6px 14px; font-size: 12.5px; border-radius: 6px; display: none;">Next →</button>
+        </div>
+
+        <div style="display: flex; gap: 16px; margin-top: 16px;">
+          <button id="btn-open-studio-landing" class="btn btn-primary btn-lg">
+            Create Custom Character
+          </button>
+          <button onclick="document.getElementById('btn-open-settings').click()" class="btn btn-cyan">
+            Set Up API Key
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN B: ACTIVE CHAT SCREEN -->
+    <section id="chat-screen" class="chat-container" style="display: none;">
+      <!-- Mood Shifting BG Overlay -->
+      <div id="mood-overlay" class="mood-overlay neutral"></div>
+
+      <!-- Floating Story Timeline Panel -->
+      <div id="story-timeline-panel" class="glass-panel"
+        style="display: none; position: absolute; top: 75px; right: 24px; width: 360px; max-height: calc(100% - 150px); overflow-y: auto; z-index: 100; padding: 20px; background: rgba(26, 26, 30, 0.96); backdrop-filter: blur(12px); border: 2px solid var(--accent-gold); border-radius: var(--radius-md); box-shadow: 0 12px 40px rgba(0,0,0,0.65); flex-direction: column; gap: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 10px;">
+          <h4 style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0; font-size: 16px; display: flex; align-items: center; gap: 6px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
+              <line x1="6" y1="3" x2="6" y2="15"></line>
+              <circle cx="18" cy="6" r="3"></circle>
+              <circle cx="6" cy="18" r="3"></circle>
+              <path d="M18 9a9 9 0 0 1-9 9"></path>
+            </svg>
+            Story Timeline Explorer
+          </h4>
+          <button id="btn-close-story-timeline" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; font-weight: bold; padding: 0 4px;">×</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
+          Fork your story at any message by hovering over it and clicking the fork icon. Below is your conversation history tree:
+        </div>
+        <div id="timeline-tree-container" style="display: flex; flex-direction: column; gap: 12px; max-height: 320px; overflow-y: auto; padding-right: 4px; margin-top: 6px;">
+          <!-- Branches will be rendered dynamically here -->
+        </div>
+      </div>
+
+      <!-- Floating Style Customizer Panel -->
+      <div id="chat-style-panel" class="glass-panel"
+        style="display: none; position: absolute; top: 75px; right: 24px; width: 340px; max-height: calc(100% - 150px); overflow-y: auto; z-index: 100; padding: 20px; background: rgba(26, 26, 30, 0.96); backdrop-filter: blur(12px); border: 2px solid var(--accent-gold); border-radius: var(--radius-md); box-shadow: 0 12px 40px rgba(0,0,0,0.65); flex-direction: column; gap: 16px;">
+        <!-- Close button and Header -->
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 10px;">
+          <h4
+            style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0; font-size: 16px; display: flex; align-items: center; gap: 6px;">
+            🎨 AI Response Stylist</h4>
+          <button id="btn-close-chat-style"
+            style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; font-weight: bold; padding: 0 4px;">×</button>
+        </div>
+
+        <!-- Styling Sections -->
+        <div style="display: flex; flex-direction: column; gap: 16px; overflow-y: auto; padding-right: 4px;">
+
+          <!-- SECTION 1: AI Actions -->
+          <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 14px;">
+            <div
+              style="font-size: 12.5px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              ✨ AI Action Tags (*action*)
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div class="form-group">
+                <label style="font-size: 11px;">Font Family</label>
+                <select id="style-action-font" class="input-field"
+                  style="padding: 4px 8px; font-size: 11.5px; height: 30px;">
+                  <option value="'Outfit', sans-serif">Outfit (Default Sans)</option>
+                  <option value="'Playfair Display', serif">Playfair Display (Elegant Serif)</option>
+                  <option value="Georgia, serif">Georgia (Classic Serif)</option>
+                  <option value="'Inter', sans-serif">Inter (Sleek Sans)</option>
+                  <option value="'Roboto', sans-serif">Roboto (Clean Sans)</option>
+                  <option value="'Lora', serif">Lora (Editorial Serif)</option>
+                  <option value="'Caveat', cursive">Caveat (Cursive / Handwritten)</option>
+                  <option value="'Courier New', monospace">Courier New (Monospace)</option>
+                  <option value="inherit">Inherit</option>
+                </select>
+                <input type="text" id="style-action-font-custom" class="input-field"
+                  placeholder="Or enter custom font name..."
+                  style="padding: 4px 8px; font-size: 11.5px; height: 28px; margin-top: 4px;">
+              </div>
+              <div class="form-group">
+                <label style="font-size: 11px;">Color</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <input type="color" id="style-action-color-picker"
+                    style="border: none; background: none; width: 30px; height: 30px; cursor: pointer; padding: 0;">
+                  <input type="text" id="style-action-color-text" class="input-field" placeholder="#c5a880"
+                    style="padding: 4px 8px; font-size: 11.5px; height: 28px; flex: 1;">
+                </div>
+              </div>
+              <div class="form-group">
+                <label style="font-size: 11px;">Font Size: <span id="style-action-size-val">14.5</span>px</label>
+                <input type="range" id="style-action-size" min="10" max="24" step="0.5" value="14.5"
+                  style="width: 100%;">
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px;">
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer;">
+                  <input type="checkbox" id="style-action-bold"> <strong>Bold</strong>
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer;">
+                  <input type="checkbox" id="style-action-italic"> <em>Italic</em>
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer;">
+                  <input type="checkbox" id="style-action-underline"> <span style="text-decoration: underline;">U</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer;">
+                  <input type="checkbox" id="style-action-strikethrough"> <span
+                    style="text-decoration: line-through;">S</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: AI Quotes/Speech -->
+          <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 14px;">
+            <div
+              style="font-size: 12.5px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              💬 AI Quotes/Speech ("speech")
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div class="form-group">
+                <label style="font-size: 11px;">Font Family</label>
+                <select id="style-quote-font" class="input-field"
+                  style="padding: 4px 8px; font-size: 11.5px; height: 30px;">
+                  <option value="'Outfit', sans-serif">Outfit (Default Sans)</option>
+                  <option value="'Playfair Display', serif">Playfair Display (Elegant Serif)</option>
+                  <option value="Georgia, serif">Georgia (Classic Serif)</option>
+                  <option value="'Inter', sans-serif">Inter (Sleek Sans)</option>
+                  <option value="'Roboto', sans-serif">Roboto (Clean Sans)</option>
+                  <option value="'Lora', serif">Lora (Editorial Serif)</option>
+                  <option value="'Caveat', cursive">Caveat (Cursive / Handwritten)</option>
+                  <option value="'Courier New', monospace">Courier New (Monospace)</option>
+                  <option value="inherit">Inherit</option>
+                </select>
+                <input type="text" id="style-quote-font-custom" class="input-field"
+                  placeholder="Or enter custom font name..."
+                  style="padding: 4px 8px; font-size: 11.5px; height: 28px; margin-top: 4px;">
+              </div>
+              <div class="form-group">
+                <label style="font-size: 11px;">Color</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <input type="color" id="style-quote-color-picker"
+                    style="border: none; background: none; width: 30px; height: 30px; cursor: pointer; padding: 0;">
+                  <input type="text" id="style-quote-color-text" class="input-field" placeholder="#ffffff"
+                    style="padding: 4px 8px; font-size: 11.5px; height: 28px; flex: 1;">
+                </div>
+              </div>
+              <div class="form-group">
+                <label style="font-size: 11px;">Font Size: <span id="style-quote-size-val">14.5</span>px</label>
+                <input type="range" id="style-quote-size" min="10" max="24" step="0.5" value="14.5"
+                  style="width: 100%;">
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px;">
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer;">
+                  <input type="checkbox" id="style-quote-bold"> <strong>Bold</strong>
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer;">
+                  <input type="checkbox" id="style-quote-italic"> <em>Italic</em>
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer;">
+                  <input type="checkbox" id="style-quote-underline"> <span style="text-decoration: underline;">U</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer;">
+                  <input type="checkbox" id="style-quote-strikethrough"> <span
+                    style="text-decoration: line-through;">S</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: AI Other / Narrative Text -->
+          <div style="padding-bottom: 8px;">
+            <div
+              style="font-size: 12.5px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              📖 Plain Text / Narrative
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div class="form-group">
+                <label style="font-size: 11px;">Font Family</label>
+                <select id="style-other-font" class="input-field"
+                  style="padding: 4px 8px; font-size: 11.5px; height: 30px;">
+                  <option value="'Outfit', sans-serif">Outfit (Default Sans)</option>
+                  <option value="'Playfair Display', serif">Playfair Display (Elegant Serif)</option>
+                  <option value="Georgia, serif">Georgia (Classic Serif)</option>
+                  <option value="'Inter', sans-serif">Inter (Sleek Sans)</option>
+                  <option value="'Roboto', sans-serif">Roboto (Clean Sans)</option>
+                  <option value="'Lora', serif">Lora (Editorial Serif)</option>
+                  <option value="'Caveat', cursive">Caveat (Cursive / Handwritten)</option>
+                  <option value="'Courier New', monospace">Courier New (Monospace)</option>
+                  <option value="inherit">Inherit</option>
+                </select>
+                <input type="text" id="style-other-font-custom" class="input-field"
+                  placeholder="Or enter custom font name..."
+                  style="padding: 4px 8px; font-size: 11.5px; height: 28px; margin-top: 4px;">
+              </div>
+              <div class="form-group">
+                <label style="font-size: 11px;">Color</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <input type="color" id="style-other-color-picker"
+                    style="border: none; background: none; width: 30px; height: 30px; cursor: pointer; padding: 0;">
+                  <input type="text" id="style-other-color-text" class="input-field" placeholder="#e2e8f0"
+                    style="padding: 4px 8px; font-size: 11.5px; height: 28px; flex: 1;">
+                </div>
+              </div>
+              <div class="form-group">
+                <label style="font-size: 11px;">Font Size: <span id="style-other-size-val">14.5</span>px</label>
+                <input type="range" id="style-other-size" min="10" max="24" step="0.5" value="14.5"
+                  style="width: 100%;">
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px;">
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer;">
+                  <input type="checkbox" id="style-other-bold"> <strong>Bold</strong>
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer;">
+                  <input type="checkbox" id="style-other-italic"> <em>Italic</em>
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer;">
+                  <input type="checkbox" id="style-other-underline"> <span style="text-decoration: underline;">U</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer;">
+                  <input type="checkbox" id="style-other-strikethrough"> <span
+                    style="text-decoration: line-through;">S</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Action buttons -->
+        <div
+          style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-muted); padding-top: 12px; margin-top: auto;">
+          <button id="btn-reset-chat-style" class="btn" style="padding: 6px 12px; font-size: 12px;">Reset
+            Defaults</button>
+          <button id="btn-save-chat-style" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;">Apply &
+            Save</button>
+        </div>
+      </div>
+
+      <!-- Floating Scenario & Themes Panel -->
+      <div id="scenario-theme-panel" class="glass-panel"
+        style="display: none; position: absolute; top: 75px; right: 24px; width: 380px; max-height: calc(100% - 150px); overflow-y: auto; z-index: 100; padding: 20px; background: rgba(26, 26, 30, 0.96); backdrop-filter: blur(12px); border: 2px solid var(--accent-gold); border-radius: var(--radius-md); box-shadow: 0 12px 40px rgba(0,0,0,0.65); flex-direction: column; gap: 16px;">
+        <!-- Close button and Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 10px;">
+          <h4 style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0; font-size: 16px; display: flex; align-items: center; gap: 6px;">
+            🎭 Scenario & Themes
+          </h4>
+          <button id="btn-close-scenario-theme" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; font-weight: bold; padding: 0 4px;">×</button>
+        </div>
+        
+        <!-- Tabs Header -->
+        <div style="display: flex; border-bottom: 1px solid var(--border-muted); margin-bottom: 8px;">
+          <button id="tab-btn-scenario" class="tab-btn active" style="flex: 1; padding: 8px; background: none; border: none; border-bottom: 2px solid var(--accent-gold); color: var(--accent-gold); font-weight: 600; cursor: pointer; font-size: 13px;">🎬 Scenario</button>
+          <button id="tab-btn-themes" class="tab-btn" style="flex: 1; padding: 8px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); cursor: pointer; font-size: 13px;">🌈 Themes</button>
+        </div>
+        
+        <!-- Tab Content 1: Scenario Control -->
+        <div id="tab-content-scenario" style="display: flex; flex-direction: column; gap: 14px;">
+          <!-- Dialogue Director (Tuning parameters) -->
+          <div class="form-group" style="border-bottom: 1px solid var(--border-muted); padding-bottom: 12px;">
+            <label style="font-size: 12.5px; color: var(--accent-gold); font-weight: 600; margin-bottom: 8px; display: block;">🎬 Dialogue Director</label>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <label for="slider-verbosity" style="font-size: 11.5px; color: var(--text-main);">Verbosity</label>
+                  <span id="val-verbosity-sidebar" style="font-size: 11.5px; color: var(--accent-gold); font-weight: bold;">50%</span>
+                </div>
+                <input type="range" id="slider-verbosity" min="0" max="100" value="50" style="width: 100%;" title="Short/Punchy vs Rich/Descriptive">
+              </div>
+              <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <label for="slider-action-ratio" style="font-size: 11.5px; color: var(--text-main);">Action Ratio</label>
+                  <span id="val-action-ratio-sidebar" style="font-size: 11.5px; color: var(--accent-gold); font-weight: bold;">50%</span>
+                </div>
+                <input type="range" id="slider-action-ratio" min="0" max="100" value="50" style="width: 100%;" title="Only Speech vs Actions & Thoughts">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="setting-authors-note" style="font-size: 12px; color: var(--accent-gold); font-weight: 600; margin-bottom: 4px; display: block;">Author's Note</label>
+            <textarea id="setting-authors-note" class="textarea-field" placeholder="E.g. [Describe the setting as dark and rainy. Maggie is highly skeptical of Arthur's motives.]" style="width: 100%; box-sizing: border-box; min-height: 80px; font-size: 12px; resize: vertical; background: var(--bg-tertiary); color: var(--text-main); border: 1px solid var(--border-muted); border-radius: var(--radius-sm); padding: 8px;"></textarea>
+          </div>
+          
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label for="setting-authors-note-depth" style="font-size: 12px; color: var(--accent-gold); font-weight: 600;">Insertion Depth</label>
+              <span id="authors-note-depth-val" style="font-size: 12px; color: var(--text-muted);">3</span>
+            </div>
+            <input type="range" id="setting-authors-note-depth" min="1" max="15" value="3" style="width: 100%;">
+            <small style="font-size: 10px; color: var(--text-muted);">Slices the note into conversation history N messages from the bottom.</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="setting-system-override" style="font-size: 12px; color: var(--accent-gold); font-weight: 600; margin-bottom: 4px; display: block;">System Prompt Override</label>
+            <textarea id="setting-system-override" class="textarea-field" placeholder="Completely replace or extend system instructions. Include {{original}} to append." style="width: 100%; box-sizing: border-box; min-height: 80px; font-size: 12px; resize: vertical; background: var(--bg-tertiary); color: var(--text-main); border: 1px solid var(--border-muted); border-radius: var(--radius-sm); padding: 8px;"></textarea>
+          </div>
+          
+          <!-- Per-Character Model Assignment (Visible only in rooms) -->
+          <div id="room-model-assignment-container" style="display: none; border-top: 1px solid var(--border-muted); padding-top: 12px;">
+            <label style="font-size: 12px; color: var(--accent-gold); font-weight: 600; margin-bottom: 8px; display: block;">Per-Character Models</label>
+            <div id="room-character-model-list" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Populated dynamically via JS -->
+            </div>
+          </div>
+          
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+            <button id="btn-save-scenario" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;">Apply Changes</button>
+          </div>
+        </div>
+        
+        <!-- Tab Content 2: Visual Themes -->
+        <div id="tab-content-themes" style="display: none; flex-direction: column; gap: 12px;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Choose a site-wide & chat-wide visual theme:</div>
+          <div id="themes-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <!-- Theme Card: Default (Sleek Dark) -->
+            <button class="theme-card active" data-theme="default" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--accent-gold); background: #1a1a1e; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
+              <span style="font-size: 12px; font-weight: 600; color: #f4f4f5;">Default Dark</span>
+              <div style="display: flex; gap: 4px;">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #121214;"></div>
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #c5a880;"></div>
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #bc4749;"></div>
+              </div>
+            </button>
+            
+            <!-- Theme Card: Cyberpunk (Neon) -->
+            <button class="theme-card" data-theme="cyberpunk" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #0c0813; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
+              <span style="font-size: 12px; font-weight: 600; color: #00ffcc;">Cyber Neon</span>
+              <div style="display: flex; gap: 4px;">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #0c0813;"></div>
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #ff0055;"></div>
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #00ffcc;"></div>
+              </div>
+            </button>
+            
+            <!-- Theme Card: Cozy Tavern (Warm Sepia) -->
+            <button class="theme-card" data-theme="cozy-tavern" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #231a14; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
+              <span style="font-size: 12px; font-weight: 600; color: #e8a87c;">Cozy Tavern</span>
+              <div style="display: flex; gap: 4px;">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #231a14;"></div>
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #e8a87c;"></div>
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #83583c;"></div>
+              </div>
+            </button>
+            
+            <!-- Theme Card: Vampire / Gothic (Blood Crimson) -->
+            <button class="theme-card" data-theme="gothic" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #140508; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
+              <span style="font-size: 12px; font-weight: 600; color: #ff3344;">Vampire Gothic</span>
+              <div style="display: flex; gap: 4px;">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #140508;"></div>
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #ff3344;"></div>
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #2d0a15;"></div>
+              </div>
+            </button>
+
+            <!-- Theme Card: Retro Terminal (Green Monospace) -->
+            <button class="theme-card" data-theme="terminal" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #051405; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
+              <span style="font-size: 12px; font-weight: 600; color: #33ff33; font-family: 'Courier New', monospace;">Retro Terminal</span>
+              <div style="display: flex; gap: 4px;">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #051405;"></div>
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #33ff33;"></div>
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #0a2f0a;"></div>
+              </div>
+            </button>
+
+            <!-- Theme Card: Lavender Mist (Calming Purple) -->
+            <button class="theme-card" data-theme="lavender" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #181524; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
+              <span style="font-size: 12px; font-weight: 600; color: #d6c7ff;">Lavender Mist</span>
+              <div style="display: flex; gap: 4px;">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #181524;"></div>
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #b09eff;"></div>
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #5a4b8c;"></div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <div class="chat-active-char">
+          <img id="chat-header-avatar" class="chat-active-avatar" src="" alt="Avatar">
+          <div>
+            <div id="chat-header-name" class="chat-active-name">Character Name</div>
+            <div id="chat-header-tagline" class="chat-active-status">Tagline</div>
+          </div>
+        </div>
+
+        <!-- Mid section: Badges -->
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <!-- Persona Badge -->
+          <div id="chat-header-persona-badge"
+            style="font-size: 11px; color: var(--text-muted); background: var(--bg-tertiary); padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border-muted); display: flex; align-items: center; gap: 6px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span id="chat-header-persona-name" style="color: var(--accent-gold); font-weight: 600;">Default</span>
+          </div>
+
+
+        </div>
+
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <button id="btn-chat-samplers" class="btn chat-header-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="21" x2="4" y2="14"></line>
+              <line x1="4" y1="10" x2="4" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12" y2="3"></line>
+              <line x1="20" y1="21" x2="20" y2="16"></line>
+              <line x1="20" y1="12" x2="20" y2="3"></line>
+              <line x1="1" y1="14" x2="7" y2="14"></line>
+              <line x1="9" y1="8" x2="15" y2="8"></line>
+              <line x1="17" y1="16" x2="23" y2="16"></line>
+            </svg>
+            Samplers
+          </button>
+          <button id="btn-chat-guide" class="btn chat-header-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+            Guide
+          </button>
+          <button id="btn-toggle-chat-style" class="btn chat-header-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 14.7255 3.09032 17.1962 4.85857 19C5.0346 19.176 5.14376 19.4187 5.14376 19.6865C5.14376 20.9632 6.1782 22 7.45493 22H12Z"></path>
+              <circle cx="7.5" cy="10.5" r="1.5" fill="currentColor"></circle>
+              <circle cx="11.5" cy="7.5" r="1.5" fill="currentColor"></circle>
+              <circle cx="16.5" cy="9.5" r="1.5" fill="currentColor"></circle>
+              <circle cx="15.5" cy="14.5" r="1.5" fill="currentColor"></circle>
+            </svg>
+            AI Styling
+          </button>
+          <button id="btn-toggle-scenario-theme" class="btn chat-header-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            Scenario & Themes
+          </button>
+          <button id="btn-toggle-story-timeline" class="btn chat-header-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="6" y1="3" x2="6" y2="15"></line>
+              <circle cx="18" cy="6" r="3"></circle>
+              <circle cx="6" cy="18" r="3"></circle>
+              <path d="M18 9a9 9 0 0 1-9 9"></path>
+            </svg>
+            Timeline
+          </button>
+          <button id="btn-chat-exit"
+            onclick="document.getElementById('landing-screen').style.display='flex'; document.getElementById('chat-screen').style.display='none'; if(document.getElementById('chat-style-panel')) document.getElementById('chat-style-panel').style.display='none';"
+            class="btn chat-header-btn exit-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Chat History -->
+      <div id="chat-thread" class="chat-thread">
+        <!-- Bubbles added dynamically -->
+      </div>
+
+      <!-- Chat Inputs and Director -->
+      <div class="chat-input-area">
+
+
+
+        <!-- Speaker Selection Strip (Hidden by default, shown when room is active) -->
+        <div id="room-speaker-strip-container"
+          style="display: none; flex-direction: column; gap: 6px; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; color: var(--accent-gold); font-weight: 600;">Active Speaker (Click to select,
+              Double-click to mute/unmute):</span>
+          </div>
+          <div id="room-speaker-chips" class="choice-chips-container" style="padding: 2px 0;">
+            <!-- Populated by JS: Auto-Cycle chip + character chips -->
+          </div>
+        </div>
+
+        <!-- Choice suggestions container -->
+        <div id="choice-chips-container" class="choice-chips-container" style="display: none; padding: 4px 0; margin-bottom: 4px;">
+          <!-- AI generated quick action/dialogue choices populate here -->
+        </div>
+
+        <!-- Message entry row -->
+        <div class="input-row-container">
+          <div class="chat-input-box-container">
+            <button id="btn-toggle-director" class="chat-action-btn" title="Toggle Director Mode (Meta-Narration)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path>
+                <path d="M19 8.5c.3.2.5.5.5.9v5.2c0 .4-.2.7-.5.9L15 14H6.5a2.5 2.5 0 0 1 0-5H15l4-1.5Z"></path>
+              </svg>
+            </button>
+            <textarea id="chat-input" class="chat-input"
+              placeholder="Type your action or speech here... Use asterisks *for actions* (e.g. *I sit down and wave*), normal text for speech."></textarea>
+          </div>
+          <div class="chat-right-actions">
+            <button id="btn-trigger-next" class="chat-action-btn next-trigger-btn" title="Trigger Next Reply">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </button>
+            <button id="btn-send-message" class="chat-send-btn" title="Send Message">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+
+    <!-- SCREEN C: HISTORY SCREEN -->
+    <section id="history-screen" class="landing-container" style="display: none;">
+      <div class="landing-content-wrapper"
+        style="width: 100%; max-width: 950px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; align-items: stretch; text-align: left; padding-bottom: 80px; box-sizing: border-box;">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 16px; width: 100%;">
+          <div>
+            <h1 class="landing-title" style="margin: 0; font-size: 28px; text-align: left;">Conversation History</h1>
+            <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">Browse, filter, and manage your
+              past
+              roleplays across all companions.</p>
+          </div>
+          <button id="history-btn-back" class="btn btn-primary">Back to Home</button>
+        </div>
+
+        <!-- Filters row -->
+        <div
+          style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap; background: var(--bg-secondary); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); width: 100%;">
+          <div style="display: flex; flex-direction: column; gap: 4px; min-width: 180px;">
+            <label style="font-size: 11px; color: var(--accent-gold); font-weight: 600;">Filter by Character:</label>
+            <select id="history-filter-char" class="input-field"
+              style="padding: 6px 12px; font-size: 12px; height: 34px;">
+              <!-- JS populated -->
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 220px;">
+            <label style="font-size: 11px; color: var(--accent-gold); font-weight: 600;">Search Messages:</label>
+            <input type="text" id="history-filter-search" class="input-field" placeholder="Search keywords..."
+              style="padding: 6px 12px; font-size: 12px; height: 34px;">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; min-width: 160px;">
+            <label style="font-size: 11px; color: var(--accent-gold); font-weight: 600;">Sort By:</label>
+            <select id="history-sort-by" class="input-field" style="padding: 6px 12px; font-size: 12px; height: 34px;">
+              <option value="recent">Most Recent Activity</option>
+              <option value="oldest">Oldest Created</option>
+              <option value="msg-desc">Most Messages</option>
+              <option value="msg-asc">Fewest Messages</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- History cards container -->
+        <div id="history-list-container"
+          style="display: flex; flex-direction: column; gap: 12px; width: 100%; padding-bottom: 24px;">
+          <!-- Populated dynamically by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN D: PERSONA SCREEN -->
+    <section id="persona-screen" class="landing-container" style="display: none;">
+      <div class="landing-content-wrapper"
+        style="width: 100%; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; align-items: stretch; text-align: left; padding-bottom: 80px; box-sizing: border-box;">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 16px; width: 100%;">
+          <div>
+            <h1 class="landing-title" style="margin: 0; font-size: 28px; text-align: left;">Persona Manager</h1>
+            <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">Create and customize your user
+              personas for tailored AI responses.</p>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button id="persona-btn-create" class="btn btn-primary">+ Create Persona</button>
+            <button id="persona-btn-back" class="btn">Back to Home</button>
+          </div>
+        </div>
+
+        <div id="personas-list-container" class="preset-cards-grid">
+          <!-- Populated dynamically by JS as companion-sized cards -->
+        </div>
+      </div>
+    </section>
+
+    <!-- MODAL C: Persona Editor Modal -->
+    <div id="persona-editor-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-content"
+        style="background: var(--bg-secondary); max-width: 650px; width: 95%; height: auto; max-height: 90vh; border-radius: var(--radius-lg); overflow-y: auto; border: 1px solid var(--border-muted);">
+        <div id="persona-editor-panel" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <h3 id="persona-editor-title"
+            style="font-family: var(--font-brand); font-size: 22px; color: var(--accent-gold); margin: 0;">Edit Persona
+          </h3>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="persona-edit-name">Persona Name</label>
+              <input type="text" id="persona-edit-name" class="input-field" placeholder="e.g. John Doe">
+            </div>
+            <div class="form-group">
+              <label for="persona-edit-avatar">Avatar URL</label>
+              <input type="url" id="persona-edit-avatar" class="input-field"
+                placeholder="https://images.unsplash.com/...">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="persona-edit-description">Description & Background (How the AI should perceive you)</label>
+            <textarea id="persona-edit-description" class="textarea-field" style="min-height: 100px;"
+              placeholder="Describe your appearance, backstory, gender/pronouns, clothes..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="persona-edit-personality">Personality Details</label>
+            <textarea id="persona-edit-personality" class="textarea-field" style="min-height: 60px;"
+              placeholder="E.g., Snarky, helpful, adventurous..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="persona-edit-quirks">Speech Quirks / Speaking Style</label>
+            <textarea id="persona-edit-quirks" class="textarea-field" style="min-height: 60px;"
+              placeholder="E.g., speaks softly, uses dialect..."></textarea>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 10px;">
+            <button id="persona-btn-cancel" class="btn">Cancel</button>
+            <button id="persona-btn-delete" class="btn btn-danger" style="display: none;">Delete Persona</button>
+            <button id="persona-btn-save" class="btn btn-primary">Save Persona</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL A: Settings Modal -->
+  <div id="settings-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content"
+      style="background: var(--bg-secondary); border-width: 2px; max-width: 800px; width: 95%; height: auto; max-height: 90vh; display: flex; flex-direction: row; overflow: hidden; border-radius: var(--radius-md); padding: 0;">
+
+      <!-- Vertical Sidebar Nav -->
+      <div class="settings-sidebar">
+        <div class="settings-sidebar-brand">
+          <span class="settings-sidebar-logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
+            </svg>
+          </span>
+          <span class="settings-sidebar-title">Settings</span>
+        </div>
+        <nav class="settings-sidebar-nav">
+          <button class="settings-tab-btn active" data-tab="tab-api">
+            <span class="stab-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path
+                  d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4">
+                </path>
+              </svg>
+            </span>
+            <span class="stab-label">API Keys</span>
+          </button>
+          <button class="settings-tab-btn" data-tab="tab-memory">
+            <span class="stab-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path
+                  d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-4.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2Z">
+                </path>
+                <path
+                  d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-4.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2Z">
+                </path>
+              </svg>
+            </span>
+            <span class="stab-label">Memory</span>
+          </button>
+          <button class="settings-tab-btn" data-tab="tab-sound">
+            <span class="stab-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+            </span>
+            <span class="stab-label">Synth</span>
+          </button>
+          <button class="settings-tab-btn" data-tab="tab-content-filter">
+            <span class="stab-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path
+                  d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+                </path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            </span>
+            <span class="stab-label">NSFW</span>
+          </button>
+          <button class="settings-tab-btn" data-tab="tab-security">
+            <span class="stab-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </span>
+            <span class="stab-label">Security</span>
+          </button>
+          <button class="settings-tab-btn" data-tab="tab-data">
+            <span class="stab-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </span>
+            <span class="stab-label">Data</span>
+          </button>
+          <button class="settings-tab-btn" data-tab="tab-tts">
+            <span class="stab-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+            </span>
+            <span class="stab-label">TTS Voice</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Right-hand content + footer -->
+      <div class="settings-main">
+        <!-- Scrollable content area -->
+        <div class="settings-content-area">
+
+          <!-- TAB 1: API Keys & Providers -->
+          <div id="tab-api" class="settings-tab-content active">
+            <h3 style="font-family: var(--font-brand); font-size: 20px; margin: 0 0 12px 0; color: var(--accent-gold);">
+              API Configuration</h3>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">
+              JollyRP is fully client-side. Select your preferred provider. Your keys are stored locally in your browser
+              and are never sent to any third-party server.
+            </p>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label for="setting-provider">API Provider:</label>
+              <select id="setting-provider" class="input-field">
+                <option value="openrouter">OpenRouter</option>
+                <option value="custom">Custom Endpoint (Ollama, LM Studio, etc.)</option>
+              </select>
+            </div>
+
+            <div id="custom-url-group" class="form-group" style="margin-bottom: 16px; display: none;">
+              <label for="setting-custom-url">Custom API Base URL:</label>
+              <input type="text" id="setting-custom-url" class="input-field" placeholder="http://localhost:11434/v1">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label id="setting-api-key-label" for="setting-api-key">OpenRouter API Key:</label>
+              <input type="password" id="setting-api-key" class="input-field" placeholder="sk-or-v1-...">
+            </div>
+
+            <div id="model-select-group" class="form-group" style="margin-bottom: 16px;">
+              <label for="setting-model">Select Roleplay Model:</label>
+              <select id="setting-model" class="input-field">
+                <!-- Loaded by JS -->
+              </select>
+              <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">
+                *Use the Auto-Free selector or choose custom to enter any manual model ID.
+              </span>
+            </div>
+
+            <div id="custom-model-group" class="form-group" style="margin-bottom: 16px; display: none;">
+              <label for="setting-custom-model">Model ID / Name:</label>
+              <input type="text" id="setting-custom-model" class="input-field"
+                placeholder="e.g. CognitiveComputations/dolphin-2.9-llama3-8b">
+              <span id="custom-model-hint"
+                style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">
+                *Enter any repository ID from Hugging Face or name from your local server.
+              </span>
+            </div>
+
+            <div id="instruct-template-group" class="form-group" style="margin-bottom: 16px;">
+              <label for="setting-instruct">Instruct Format Template:</label>
+              <select id="setting-instruct" class="input-field">
+                <option value="chatml">ChatML (Dolphin, Qwen, Yi)</option>
+                <option value="llama3">Llama 3 (Meta Llama 3 / 3.1)</option>
+                <option value="alpaca">Alpaca / Vicuna</option>
+                <option value="mistral">Mistral [INST]</option>
+                <option value="deepseek">DeepSeek (V3 / R1)</option>
+                <option value="vanilla">Vanilla (Plain Text - No Formatting)</option>
+              </select>
+              <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">
+                *Select the template that matches your model to prevent generation errors or leaking system prompts.
+              </span>
+            </div>
+
+            <!-- Advanced Samplers (Generation Parameters) -->
+            <div id="generation-parameters-group" class="form-group"
+              style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-muted);">
+              <details style="width: 100%;">
+                <summary
+                  style="font-size: 13.5px; font-weight: 600; color: var(--accent-gold); cursor: pointer; outline: none; display: flex; align-items: center; justify-content: space-between; user-select: none;">
+                  <span>🎛️ Advanced Samplers (Generation Parameters)</span>
+                  <span style="font-size: 10px; color: var(--text-muted); font-weight: normal; margin-left: 8px;">(Click
+                    to expand)</span>
+                </summary>
+                <div
+                  style="margin-top: 16px; display: flex; flex-direction: column; gap: 14px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: var(--radius-sm); border: 1px solid var(--border-muted);">
+
+                  <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <label for="setting-param-temp" style="font-size: 12px;">Temperature: <span id="val-param-temp"
+                          style="color: var(--accent-gold); font-weight: bold;">0.80</span></label>
+                    </div>
+                    <input type="range" id="setting-param-temp" min="0.1" max="2.0" step="0.05" value="0.80"
+                      style="width: 100%;" class="studio-slider">
+                    <span style="font-size: 10px; color: var(--text-muted);">Controls randomness: lower is more
+                      focused/deterministic, higher is more creative/unpredictable.</span>
+                  </div>
+
+                  <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <label for="setting-param-topp" style="font-size: 12px;">Top P (Nucleus): <span
+                          id="val-param-topp" style="color: var(--accent-gold); font-weight: bold;">1.00</span></label>
+                    </div>
+                    <input type="range" id="setting-param-topp" min="0.0" max="1.0" step="0.05" value="1.00"
+                      style="width: 100%;" class="studio-slider">
+                    <span style="font-size: 10px; color: var(--text-muted);">Limits token choices to those with
+                      cumulative
+                      probability ≤ P.</span>
+                  </div>
+
+                  <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <label for="setting-param-topk" style="font-size: 12px;">Top K: <span id="val-param-topk"
+                          style="color: var(--accent-gold); font-weight: bold;">40</span></label>
+                    </div>
+                    <input type="range" id="setting-param-topk" min="0" max="100" step="1" value="40"
+                      style="width: 100%;" class="studio-slider">
+                    <span style="font-size: 10px; color: var(--text-muted);">Limits token selection to top K
+                      highest-probability tokens. Set to 0 to disable.</span>
+                  </div>
+
+                  <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <label for="setting-param-reppen" style="font-size: 12px;">Repetition Penalty: <span
+                          id="val-param-reppen"
+                          style="color: var(--accent-gold); font-weight: bold;">1.18</span></label>
+                    </div>
+                    <input type="range" id="setting-param-reppen" min="1.0" max="2.0" step="0.01" value="1.18"
+                      style="width: 100%;" class="studio-slider">
+                    <span style="font-size: 10px; color: var(--text-muted);">Discourages the model from repeating words.
+                      1.0 is default (disabled).</span>
+                  </div>
+
+                  <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <label for="setting-param-maxtokens" style="font-size: 12px;">Max Response Length: <span
+                          id="val-param-maxtokens" style="color: var(--accent-gold); font-weight: bold;">1024</span>
+                        tokens</label>
+                    </div>
+                    <input type="range" id="setting-param-maxtokens" min="64" max="4096" step="64" value="1024"
+                      style="width: 100%;" class="studio-slider">
+                    <span style="font-size: 10px; color: var(--text-muted);">Max length of generated response per
+                      message.</span>
+                  </div>
+
+                  <!-- Enable Suggestion Chips -->
+                  <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px; margin-top: 12px;">
+                    <div style="text-align: left;">
+                      <label for="setting-param-suggestion-chips" style="font-size: 12.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; display: block; cursor: pointer;">AI Suggestion Chips</label>
+                      <span style="font-size: 10px; color: var(--text-muted); display: block; line-height: 1.4;">Generate 3 predictive quick actions/replies (consumes tokens).</span>
+                    </div>
+                    <label class="switch-toggle" style="position: relative; display: inline-block; width: 44px; height: 22px; flex-shrink: 0; margin-left: 12px; cursor: pointer;">
+                      <input type="checkbox" id="setting-param-suggestion-chips" style="opacity: 0; width: 0; height: 0;" checked>
+                      <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 22px; border: 1px solid var(--border-muted);"></span>
+                    </label>
+                  </div>
+
+                </div>
+              </details>
+            </div>
+
+            <div id="fallback-configurations-group" class="form-group"
+              style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-muted);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label style="margin: 0;">Fallback Configurations (Alt Accounts)</label>
+                <button id="btn-add-fallback" class="btn" style="font-size: 11px; padding: 4px 8px;">+ Add
+                  Fallback</button>
+              </div>
+              <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+                Add alternative API keys or endpoints. If the primary configuration encounters a rate limit or
+                authorization error (e.g., 402 Payment Required, 401 Unauthorized), the system will automatically cycle
+                through these fallbacks to retry your request seamlessly.
+              </p>
+
+              <div id="fallbacks-list-container" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Fallback items will be injected here dynamically by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: Memory Forge -->
+          <div id="tab-memory" class="settings-tab-content" style="display: none;">
+            <h3 style="font-family: var(--font-brand); font-size: 20px; margin: 0 0 12px 0; color: var(--accent-gold);">
+              Memory Forge</h3>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">
+              Configure memory ledgers and lorebooks to preserve character context across roleplay iterations.
+            </p>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label
+                style="display: flex; align-items: center; gap: 8px; font-weight: normal; font-size: 13.5px; cursor: pointer;">
+                <input type="checkbox" id="setting-auto-summarize" checked>
+                Enable Background Auto-Summarization
+              </label>
+            </div>
+
+            <div id="auto-summarize-options"
+              style="display: flex; gap: 16px; margin-bottom: 20px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid var(--border-muted);">
+              <div class="form-group" style="flex: 1;">
+                <label for="setting-summarize-trigger" style="font-size: 11px;">Summarize Every (N Messages)</label>
+                <input type="number" id="setting-summarize-trigger" class="input-field" value="15" min="5" max="50">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label for="setting-summarize-keep" style="font-size: 11px;">Keep Untouched (Context Window)</label>
+                <input type="number" id="setting-summarize-keep" class="input-field" value="10" min="2" max="30">
+              </div>
+            </div>
+
+            <div class="memory-status-box"
+              style="background: var(--bg-tertiary); padding: 16px; border: 1px solid var(--border-muted); border-radius: var(--radius-sm);">
+              <div style="font-size: 11px; font-weight: 600; color: var(--accent-gold); margin-bottom: 6px;">TRUTH
+                LEDGER
+                (Rolling Summary)</div>
+              <div style="position: relative;">
+                <div id="memory-summary-text" class="memory-rolling-summary"
+                  style="outline: none; min-height: 80px; background: var(--bg-secondary); border: 1px solid var(--border-muted); padding: 10px; border-radius: var(--radius-sm); font-size: 12.5px;">
+                  No memories captured yet.
+                </div>
+                <div style="text-align: right; margin-top: 6px;">
+                  <button id="btn-edit-summary" class="btn" style="font-size: 10px; padding: 3px 8px;">Edit
+                    Ledger</button>
+                  <button id="btn-save-summary" class="btn btn-primary"
+                    style="font-size: 10px; padding: 3px 8px; display: none;">Save changes</button>
+                </div>
+              </div>
+
+              <div
+                style="font-size: 11px; font-weight: 600; color: var(--accent-gold); margin-top: 14px; margin-bottom: 6px;">
+                CHRONICLE TIMELINE</div>
+              <div id="memory-chronicle-timeline"
+                style="max-height: 150px; overflow-y: auto; background: var(--bg-secondary); border: 1px solid var(--border-muted); padding: 12px; border-radius: var(--radius-sm); font-size: 12px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box;">
+                <!-- Timeline items rendered dynamically -->
+              </div>
+
+              <div
+                style="font-size: 11px; font-weight: 600; color: var(--accent-gold); margin-top: 14px; margin-bottom: 6px;">
+                ACTIVE LOREBOOK ENTRIES</div>
+              <div id="memory-ledger-list" class="memory-ledger-container"
+                style="max-height: 150px; overflow-y: auto; background: var(--bg-secondary); border: 1px solid var(--border-muted); padding: 8px; border-radius: var(--radius-sm); font-size: 12px;">
+                <!-- Lore entries scan loaded dynamically -->
+                <div class="memory-ledger-item" style="border-left-color: var(--text-muted); opacity: 0.7;">No active
+                  Lorebook items matched.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4: Sound Board -->
+          <div id="tab-sound" class="settings-tab-content" style="display: none;">
+            <h3 style="font-family: var(--font-brand); font-size: 20px; margin: 0 0 12px 0; color: var(--accent-gold);">
+              Immersion Synth</h3>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">
+              Toggle ambient synthesizer channels to shape the background acoustic atmosphere of your roleplays.
+            </p>
+
+            <div
+              style="background: var(--bg-tertiary); padding: 16px; border: 1px solid var(--border-muted); border-radius: var(--radius-sm);">
+              <div class="sound-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="sound-toggle-btn" data-sound="fireplace">
+                  <span style="font-size: 18px;">🔥</span>
+                  <span>Fireplace</span>
+                </button>
+                <button class="sound-toggle-btn" data-sound="rain">
+                  <span style="font-size: 18px;">🌧️</span>
+                  <span>Soft Rain</span>
+                </button>
+                <button class="sound-toggle-btn" data-sound="neonhum">
+                  <span style="font-size: 18px;">🍃</span>
+                  <span>Library Hum</span>
+                </button>
+                <button class="sound-toggle-btn" data-sound="cosmic">
+                  <span style="font-size: 18px;">✨</span>
+                  <span>Cosmic Pad</span>
+                </button>
+              </div>
+              <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+                  <span>Synth Channel Mix</span>
+                  <span>Master Volume</span>
+                </div>
+                <input type="range" id="slider-master-volume" min="0" max="1" step="0.05" value="0.5"
+                  style="width: 100%;">
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 5: Content Filter -->
+          <div id="tab-content-filter" class="settings-tab-content" style="display: none;">
+            <h3 style="font-family: var(--font-brand); font-size: 20px; margin: 0 0 12px 0; color: var(--accent-gold);">
+              Community Content Filter</h3>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">
+              Manage NSFW / mature content preferences for characters imported from the Chub AI community repository.
+            </p>
+
+            <div
+              style="background: var(--bg-tertiary); padding: 16px; border: 1px solid var(--border-muted); border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">Show
+                    NSFW
+                    Community Characters</div>
+                  <div style="font-size: 11.5px; color: var(--text-muted);">Enable searching and viewing of mature / 18+
+                    content cards from Chub AI.</div>
+                </div>
+                <label class="switch-toggle"
+                  style="position: relative; display: inline-block; width: 44px; height: 22px;">
+                  <input type="checkbox" id="setting-nsfw-enable" style="opacity: 0; width: 0; height: 0;">
+                  <span class="slider-toggle-btn"
+                    style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 22px; border: 1px solid var(--border-muted);"></span>
+                </label>
+              </div>
+
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px;">
+                <div>
+                  <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">Blur
+                    NSFW
+                    Avatars by Default</div>
+                  <div style="font-size: 11.5px; color: var(--text-muted);">Apply a blur filter to mature character
+                    avatar
+                    images. Hover over the card to reveal.</div>
+                </div>
+                <label class="switch-toggle"
+                  style="position: relative; display: inline-block; width: 44px; height: 22px;">
+                  <input type="checkbox" id="setting-nsfw-blur" style="opacity: 0; width: 0; height: 0;" checked>
+                  <span class="slider-toggle-btn"
+                    style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 22px; border: 1px solid var(--border-muted);"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 6: Security Lock -->
+          <div id="tab-security" class="settings-tab-content" style="display: none;">
+            <h3 style="font-family: var(--font-brand); font-size: 20px; margin: 0 0 12px 0; color: var(--accent-gold);">
+              Security Lock Settings</h3>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">
+              Protect your private worlds and roleplay chats with a 4-digit security PIN code.
+            </p>
+
+            <div
+              style="background: var(--bg-tertiary); padding: 16px; border: 1px solid var(--border-muted); border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 14px;">
+
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">Enable
+                    PIN Lock</div>
+                  <div style="font-size: 11.5px; color: var(--text-muted);">Require a 4-digit PIN immediately upon
+                    loading
+                    the application.</div>
+                </div>
+                <label class="switch-toggle"
+                  style="position: relative; display: inline-block; width: 44px; height: 22px;">
+                  <input type="checkbox" id="setting-pin-enable" style="opacity: 0; width: 0; height: 0;">
+                  <span class="slider-toggle-btn"
+                    style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 22px; border: 1px solid var(--border-muted);"></span>
+                </label>
+              </div>
+
+              <div id="pin-setup-group"
+                style="display: none; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px;">
+                <div>
+                  <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">Set
+                    4-Digit PIN</div>
+                  <div style="font-size: 11.5px; color: var(--text-muted);">Enter exactly 4 digits. Use digits only
+                    (0-9).
+                  </div>
+                </div>
+                <div style="position: relative;">
+                  <input type="password" id="setting-pin-code" maxlength="4" placeholder="••••"
+                    style="background: var(--bg-secondary); border: 1px solid var(--border-muted); border-radius: var(--radius-xs); color: var(--text-main); padding: 6px 10px; width: 80px; text-align: center; font-size: 16px; letter-spacing: 4px; font-family: monospace;"
+                    oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- TAB 7: Data Management -->
+          <div id="tab-data" class="settings-tab-content" style="display: none;">
+            <h3 style="font-family: var(--font-brand); font-size: 20px; margin: 0 0 12px 0; color: var(--accent-gold);">
+              Data Backup & Restore</h3>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">
+              Export your entire setup (Characters, Chats, Personas, API Keys, Settings) as a single ZIP file, or
+              restore from a previous backup.
+            </p>
+
+            <div
+              style="background: var(--bg-tertiary); padding: 16px; border: 1px solid var(--border-muted); border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 14px;">
+
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">Export
+                    Backup</div>
+                  <div style="font-size: 11.5px; color: var(--text-muted);">Download a ZIP of all your current data.
+                  </div>
+                </div>
+                <button id="btn-export-data" class="btn" style="font-size: 12px; padding: 6px 14px;">📥 Export
+                  Data</button>
+              </div>
+
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px;">
+                <div>
+                  <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">Restore
+                    Backup</div>
+                  <div style="font-size: 11.5px; color: var(--accent-crimson);">WARNING: This will completely overwrite
+                    all current data!</div>
+                </div>
+                <button id="btn-import-data" class="btn btn-secondary"
+                  style="font-size: 12px; padding: 6px 14px; border-color: var(--accent-crimson); color: var(--accent-crimson);">📤
+                  Restore Zip</button>
+                <input type="file" id="import-data-file" accept=".zip" style="display: none;">
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 8: TTS Configuration -->
+          <div id="tab-tts" class="settings-tab-content" style="display: none;">
+            <h3 style="font-family: var(--font-brand); font-size: 20px; margin: 0 0 12px 0; color: var(--accent-gold);">
+              Text-To-Speech Settings</h3>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">
+              Configure Text-To-Speech (TTS) settings. Autoplay will automatically speak incoming messages using your selected voice.
+            </p>
+
+            <div class="form-group" style="margin-bottom: 16px; flex-direction: row; align-items: center; gap: 8px;">
+              <input type="checkbox" id="setting-tts-autoplay" style="cursor: pointer; width: 16px; height: 16px;">
+              <label for="setting-tts-autoplay" style="font-size: 13px; font-weight: normal; cursor: pointer; user-select: none; color: var(--text-main);">Enable TTS Autoplay</label>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label for="setting-tts-provider">TTS Provider:</label>
+              <select id="setting-tts-provider" class="input-field">
+                <option value="browser">Browser Speech Synthesis (Local)</option>
+                <option value="custom">Custom HTTP API Endpoint (ElevenLabs, OpenAI, etc.)</option>
+              </select>
+            </div>
+
+            <!-- Browser Speech Fields -->
+            <div id="tts-browser-fields" style="display: block; margin-top: 12px;">
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="setting-tts-voice">Select Local Voice:</label>
+                <select id="setting-tts-voice" class="input-field">
+                  <!-- Loaded dynamically by JS -->
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="setting-tts-pitch">Pitch: <span id="val-tts-pitch" style="color: var(--accent-gold); font-weight: bold;">1.0</span></label>
+                <input type="range" id="setting-tts-pitch" min="0.5" max="2.0" step="0.1" value="1.0" class="studio-slider">
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="setting-tts-rate">Speed/Rate: <span id="val-tts-rate" style="color: var(--accent-gold); font-weight: bold;">1.0</span></label>
+                <input type="range" id="setting-tts-rate" min="0.5" max="2.0" step="0.1" value="1.0" class="studio-slider">
+              </div>
+            </div>
+
+            <!-- Custom HTTP API Fields -->
+            <div id="tts-custom-fields" style="display: none; margin-top: 12px;">
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="setting-tts-url">API Endpoint URL:</label>
+                <input type="text" id="setting-tts-url" class="input-field" placeholder="https://api.elevenlabs.io/v1/text-to-speech/voice-id">
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="setting-tts-key">API Key/Token:</label>
+                <input type="password" id="setting-tts-key" class="input-field" placeholder="Enter API Key / Token">
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="setting-tts-method">HTTP Method:</label>
+                <select id="setting-tts-method" class="input-field">
+                  <option value="POST">POST</option>
+                  <option value="GET">GET</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="setting-tts-headers">Request Headers (JSON format):</label>
+                <textarea id="setting-tts-headers" class="textarea-field" style="font-family: monospace; font-size: 12px; min-height: 80px;" placeholder='{&#10;  "xi-api-key": "{{key}}",&#10;  "Content-Type": "application/json"&#10;}'></textarea>
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="setting-tts-body">Request Body Template:</label>
+                <textarea id="setting-tts-body" class="textarea-field" style="font-family: monospace; font-size: 12px; min-height: 80px;" placeholder='{&#10;  "text": "{{text}}",&#10;  "model_id": "eleven_monolingual_v1"&#10;}'></textarea>
+                <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">
+                  *Use placeholders: <code>{{text}}</code> for spoken text (quotes extracted), <code>{{key}}</code> for your API key.
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <!-- Footer Actions -->
+        <div
+          style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 20px; border-top: 1px solid var(--border-muted); background: var(--bg-tertiary); flex-shrink: 0;">
+          <button id="btn-close-settings" class="btn">Close</button>
+          <button id="btn-save-settings" class="btn btn-cyan">Save Configurations</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL B: Character Studio (Creation Wizard) -->
+  <div id="studio-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="background: var(--bg-secondary); max-width: 650px;">
+      <div class="studio-layout">
+        <div
+          style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-muted); padding-bottom:12px;">
+          <h2 id="studio-modal-title"
+            style="font-family: var(--font-brand); font-size: 26px; color: var(--accent-gold);">🎭 Character Studio</h2>
+          <div style="display: flex; gap: 8px;">
+            <a href="https://chub.ai" target="_blank" class="btn btn-secondary"
+              style="font-size: 11px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px; text-decoration: none; color: var(--text-main);">
+              <span style="color: var(--accent-gold);">🌐</span> Browse Chub.ai
+            </a>
+            <button id="btn-import-card" class="btn" style="font-size: 11px; padding: 6px 12px;">
+              📥 Import Card (.json, .png)
+            </button>
+          </div>
+          <input type="file" id="card-file-input" style="display: none;" accept=".json,.png">
+        </div>
+
+        <!-- Janitor AI Help Callout -->
+        <div
+          style="background: rgba(59, 110, 140, 0.08); border: 1.5px solid rgba(59, 110, 140, 0.25); border-radius: var(--radius-sm); padding: 12px; margin-top: 14px; margin-bottom: 6px; display: flex; gap: 12px; align-items: flex-start;">
+          <span style="font-size: 20px; line-height: 1; margin-top: 1px;">💡</span>
+          <div style="font-size: 11.5px; line-height: 1.45; color: var(--text-muted);">
+            <strong style="color: #a5d3f2; font-family: var(--font-brand);">Importing from Janitor AI?</strong> Since
+            Janitor AI is a closed ecosystem protected by Cloudflare, direct search is not supported. However, you can
+            still play their characters here! Install a browser extension or userscript (such as <a
+              href="https://github.com/itsfantomas/janitor-exporter" target="_blank"
+              style="color: var(--accent-gold); text-decoration: underline;">Janitor Exporter</a>) to export V2 PNG
+            cards from their site, then click <strong>Import Card</strong> above to import them instantly!
+          </div>
+        </div>
+
+        <!-- Character Studio Tab Selection -->
+        <div
+          style="display: flex; gap: 4px; margin-top: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-muted); padding-bottom: 2px;">
+          <button type="button" id="btn-studio-tab-manual" class="studio-tab-btn active">
+            ✏️ Manual Editor
+          </button>
+          <button type="button" id="btn-studio-tab-ai" class="studio-tab-btn">
+            ✨ AI Generator
+          </button>
+        </div>
+
+        <!-- AI Generator Tab Content -->
+        <div id="studio-tab-ai-content" style="display: none;">
+          <div class="ai-gen-panel" id="studio-ai-panel" style="margin-top: 0; margin-bottom: 16px;">
+            <div
+              style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-muted); padding-bottom: 8px; margin-bottom: 4px;">
+              <div
+                style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13.5px; color: var(--accent-gold); font-family: var(--font-brand);">
+                <span>✨</span> AI Character Card Generator
+              </div>
+              <div id="studio-ai-status" style="font-size: 11px; color: var(--text-muted); display: none;"></div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="studio-ai-prompt"
+                style="font-size: 11px; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                <span>Describe your character outline (or raw concept)</span>
+                <span style="color: var(--accent-gold); font-weight: bold;">Required</span>
+              </label>
+              <textarea id="studio-ai-prompt" class="textarea-field"
+                style="min-height: 54px; font-size: 12px; padding: 6px 10px;"
+                placeholder="e.g., A tsundere fire mage who is secretly insecure about her powers, or a medieval knight who loves to bake pastries..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+              <div class="form-group" style="flex: 1.2; min-width: 200px; margin-bottom: 0;">
+                <label for="studio-ai-reference" style="font-size: 11px; margin-bottom: 4px;">Style Reference
+                  Templates</label>
+                <select id="studio-ai-reference" class="input-field"
+                  style="font-size: 11.5px; padding: 5px 8px; height: auto;">
+                  <option value="">-- Add Reference Card --</option>
+                </select>
+                <div id="studio-ai-selected-references"
+                  style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;"></div>
+              </div>
+
+              <!-- Creativity Adherence Slider -->
+              <div class="form-group" style="flex: 1.2; min-width: 200px; margin-bottom: 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                  <label style="margin-bottom: 0;">Creativity Bias</label>
+                  <span id="studio-ai-creativity-val"
+                    style="color: var(--accent-gold); font-weight: 600; font-family: monospace;">0.50</span>
+                </div>
+                <input type="range" id="studio-ai-creativity" min="0" max="100" value="50" class="studio-slider"
+                  style="margin-top: 5px;">
+                <div
+                  style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); margin-top: 3px; line-height: 1;">
+                  <span>🎨 Creative (0.0)</span>
+                  <span>🎯 Faithful (1.0)</span>
+                </div>
+              </div>
+
+              <div
+                style="display: flex; align-items: center; gap: 8px; height: 32px; background: rgba(0, 0, 0, 0.15); border: 1px solid var(--border-muted); padding: 0 10px; border-radius: var(--radius-sm);">
+                <label class="switch-toggle"
+                  style="position: relative; display: inline-block; width: 44px; height: 22px;">
+                  <input type="checkbox" id="studio-ai-nsfw" style="opacity: 0; width: 0; height: 0;">
+                  <span class="slider-toggle-btn"
+                    style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 22px; border: 1px solid var(--border-muted);"></span>
+                </label>
+                <span style="font-size: 11.5px; font-weight: 600; color: var(--text-main); cursor: pointer;"
+                  onclick="document.getElementById('studio-ai-nsfw').click()">🔥 Go Wild / NSFW</span>
+              </div>
+
+              <button type="button" id="btn-studio-ai-generate" class="btn btn-primary"
+                style="padding: 6px 14px; font-size: 12px; height: 32px; background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-dark)); color: var(--bg-primary); border: none; font-weight: 600; cursor: pointer;">
+                🪄 Generate Card
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual Editor Tab Content -->
+        <div id="studio-tab-manual-content">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="studio-name">Character Name</label>
+              <input type="text" id="studio-name" class="input-field" placeholder="e.g. Barnaby Stoutheart">
+            </div>
+            <div class="form-group">
+              <label for="studio-tagline">Tagline / Short description</label>
+              <input type="text" id="studio-tagline" class="input-field"
+                placeholder="e.g. A grumpy tavern keeper with a heart of gold.">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="studio-avatar">Avatar URL</label>
+              <input type="text" id="studio-avatar" class="input-field"
+                placeholder="e.g. https://images.unsplash.com/...">
+            </div>
+            <div class="form-group">
+              <label for="studio-avatar-file">Or Upload Image</label>
+              <input type="file" id="studio-avatar-file" accept="image/*" class="input-field"
+                style="padding: 4px 8px; font-size: 11px;">
+            </div>
+          </div>
+
+          <!-- Expression Sprites (Optional) -->
+          <div style="margin: 12px 0; border: 1.5px dashed rgba(255,255,255,0.06); padding: 14px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.12);">
+            <div style="font-size: 12.5px; font-weight: bold; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              🎭 Expression Sprites (Optional URLs)
+            </div>
+            <div class="form-row" style="margin-bottom: 8px;">
+              <div class="form-group">
+                <label for="studio-sprite-happy" style="font-size: 11px;">Happy Sprite URL</label>
+                <input type="text" id="studio-sprite-happy" class="input-field" style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. happy avatar URL">
+              </div>
+              <div class="form-group">
+                <label for="studio-sprite-sad" style="font-size: 11px;">Sad Sprite URL</label>
+                <input type="text" id="studio-sprite-sad" class="input-field" style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. sad avatar URL">
+              </div>
+            </div>
+            <div class="form-row" style="margin-bottom: 8px;">
+              <div class="form-group">
+                <label for="studio-sprite-angry" style="font-size: 11px;">Angry Sprite URL</label>
+                <input type="text" id="studio-sprite-angry" class="input-field" style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. angry avatar URL">
+              </div>
+              <div class="form-group">
+                <label for="studio-sprite-blush" style="font-size: 11px;">Blush Sprite URL</label>
+                <input type="text" id="studio-sprite-blush" class="input-field" style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. blushing avatar URL">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="flex: 0.5;">
+                <label for="studio-sprite-smug" style="font-size: 11px;">Smug Sprite URL</label>
+                <input type="text" id="studio-sprite-smug" class="input-field" style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. smug avatar URL">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Greetings (First is default, add alternate greetings below)</label>
+            <div id="studio-greetings-container" style="display:flex; flex-direction:column; gap:8px;">
+              <textarea id="studio-intro" class="textarea-field" style="min-height:60px;"
+                placeholder="*The tavern bell chimed as you entered...* 'Welcome, traveler!'"></textarea>
+            </div>
+            <button type="button" id="btn-studio-add-greeting" class="btn"
+              style="padding: 4px 10px; font-size:11px; align-self:flex-start; margin-top:4px;">+ Add Alternate
+              Greeting</button>
+          </div>
+
+          <div class="form-group">
+            <label for="studio-bio">Biography & Backstory</label>
+            <textarea id="studio-bio" class="textarea-field"
+              placeholder="Details about their past, setting, role in the world, secrets..."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="studio-personality">Core Personality</label>
+              <textarea id="studio-personality" class="textarea-field" style="min-height:60px;"
+                placeholder="Warm, boisterous, loyal..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="studio-quirks">Speech Quirks & Format</label>
+              <textarea id="studio-quirks" class="textarea-field" style="min-height:60px;"
+                placeholder="Uses terms like 'By the gods', speaks in third person..."></textarea>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="studio-tags">Tags (Comma-separated)</label>
+            <input type="text" id="studio-tags" class="input-field" placeholder="e.g. Roleplay, Magic, tsundere, Male">
+          </div>
+
+          <div
+            style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.25); border: 1px solid var(--border-muted); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 20px;">
+            <div>
+              <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">🔞 Mark
+                Character as NSFW</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Enable this to automatically apply NSFW filtering
+                and blur to this custom companion.</div>
+            </div>
+            <label class="switch-toggle" style="position: relative; display: inline-block; width: 44px; height: 22px;">
+              <input type="checkbox" id="studio-nsfw" style="opacity: 0; width: 0; height: 0;">
+              <span class="slider-toggle-btn"
+                style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 22px; border: 1px solid var(--border-muted);"></span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label>Personality Tuning Sliders</label>
+            <div class="slider-grid">
+              <div class="slider-group">
+                <div class="slider-labels"><span>Introverted</span><span>Extroverted</span></div>
+                <input type="range" id="slider-extro" class="studio-slider" min="0" max="100" value="50">
+              </div>
+              <div class="slider-group">
+                <div class="slider-labels"><span>Orderly</span><span>Chaotic (Fun)</span></div>
+                <input type="range" id="slider-chaos" class="studio-slider" min="0" max="100" value="50">
+              </div>
+              <div class="slider-group">
+                <div class="slider-labels"><span>Cold/Cynical</span><span>Warm/Friendly</span></div>
+                <input type="range" id="slider-warmth" class="studio-slider" min="0" max="100" value="50">
+              </div>
+              <div class="slider-group">
+                <div class="slider-labels"><span>Simple</span><span>Highly Intelligent</span></div>
+                <input type="range" id="slider-intel" class="studio-slider" min="0" max="100" value="50">
+              </div>
+            </div>
+          </div>
+
+        </div> <!-- #studio-tab-manual-content -->
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
+          <button id="btn-close-studio" class="btn">Cancel</button>
+          <button id="btn-save-character" class="btn btn-primary">Forge Character Card</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL C: Character Profile Details & Chat History -->
+  <div id="profile-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content"
+      style="background: var(--bg-secondary); border-width: 2px; max-width: 850px; width: 95%; height: 500px; padding: 0; display: flex; flex-direction: row; overflow: hidden; border-radius: var(--radius-md);">
+
+      <!-- Left: Model's enlargened photo with name/tagline overlay -->
+      <div
+        style="width: 260px; height: 100%; position: relative; flex-shrink: 0; border-right: 1px solid var(--border-muted); overflow: hidden;">
+        <img id="profile-avatar" src="" style="width: 100%; height: 100%; object-fit: cover;">
+        <button id="profile-btn-fav" class="fav-heart-btn" title="Toggle Favorite"
+          style="top: 15px; right: 15px; width: 32px; height: 32px; font-size: 15px;">
+          ♥
+        </button>
+        <div
+          style="position: absolute; bottom: 0; left: 0; width: 100%; height: 50%; background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 20%, transparent); display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; box-sizing: border-box; text-align: left;">
+          <h2 id="profile-name"
+            style="font-family: var(--font-brand); font-size: 26px; margin: 0; color: var(--accent-gold); text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
+            Name</h2>
+          <p id="profile-tagline"
+            style="font-size: 12px; color: #fff; opacity: 0.85; margin: 4px 0 0 0; font-style: italic; text-shadow: 0 1px 2px rgba(0,0,0,0.8); line-height: 1.3;">
+            Tagline</p>
+        </div>
+      </div>
+
+      <!-- Right: Bio, Sliders, and Chats -->
+      <div
+        style="flex: 1; display: flex; flex-direction: column; height: 100%; padding: 24px; box-sizing: border-box; justify-content: space-between; overflow: hidden;">
+
+        <div
+          style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; height: calc(100% - 50px); overflow: hidden;">
+          <!-- Bio & Sliders (Scrollable) -->
+          <div
+            style="display: flex; flex-direction: column; gap: 14px; overflow-y: auto; padding-right: 12px; border-right: 1px solid var(--border-muted);">
+            <div>
+              <h4
+                style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0 0 6px 0; font-size: 15px;">
+                Biography</h4>
+              <p id="profile-bio"
+                style="font-size: 12.5px; line-height: 1.5; color: var(--text-main); margin: 0; white-space: pre-wrap;">
+              </p>
+            </div>
+
+            <div>
+              <h4
+                style="font-family: var(--font-brand); color: var(--accent-gold); margin: 6px 0 6px 0; font-size: 15px;">
+                Personality & Quirks</h4>
+              <p id="profile-personality"
+                style="font-size: 12px; line-height: 1.4; color: var(--text-muted); margin: 0; white-space: pre-wrap;">
+              </p>
+            </div>
+
+            <!-- Sliders status display -->
+            <div
+              style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px; border-top: 1px dashed var(--border-muted); padding-top: 8px;">
+              <div style="font-size: 10.5px; display:flex; justify-content:space-between; color: var(--text-muted);">
+                <span>Introvert / Extrovert:</span>
+                <strong id="profile-slider-extro" style="color: var(--text-main);">50%</strong>
+              </div>
+              <div style="font-size: 10.5px; display:flex; justify-content:space-between; color: var(--text-muted);">
+                <span>Orderly / Chaotic:</span>
+                <strong id="profile-slider-chaos" style="color: var(--text-main);">50%</strong>
+              </div>
+              <div style="font-size: 10.5px; display:flex; justify-content:space-between; color: var(--text-muted);">
+                <span>Cynical / Warm:</span>
+                <strong id="profile-slider-warmth" style="color: var(--text-main);">50%</strong>
+              </div>
+              <div style="font-size: 10.5px; display:flex; justify-content:space-between; color: var(--text-muted);">
+                <span>Simple / Intelligent:</span>
+                <strong id="profile-slider-intel" style="color: var(--text-main);">50%</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chats (Scrollable) -->
+          <div style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+              <h4 style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0; font-size: 15px;">
+                Conversations</h4>
+              <button id="profile-btn-new-chat" class="btn btn-primary" style="padding: 4px 10px; font-size: 11px;">+
+                New Chat</button>
+            </div>
+
+            <!-- Persona Selection Dropdown for New Chat -->
+            <div style="display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;">
+              <label for="profile-select-persona"
+                style="font-size: 10.5px; color: var(--accent-gold); font-weight: 600;">With Persona:</label>
+              <select id="profile-select-persona" class="input-field"
+                style="padding: 4px 8px; font-size: 12px; height: 32px; width: 100%;">
+                <!-- JS populated -->
+              </select>
+            </div>
+
+            <!-- List of chats for this character -->
+            <div id="profile-chats-list"
+              style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1;">
+              <!-- Filled dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Footer Action -->
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-muted); padding-top: 12px; margin-top: 8px; flex-shrink: 0; width: 100%;">
+          <div id="profile-custom-actions" style="display: flex; gap: 8px;">
+            <button id="profile-btn-edit" class="btn" style="padding: 6px 14px; font-size: 12px; display: none;">✍ Edit
+              Companion</button>
+            <button id="profile-btn-delete" class="btn btn-danger"
+              style="padding: 6px 14px; font-size: 12px; display: none;">🗑 Delete Companion</button>
+          </div>
+          <button id="profile-btn-close" class="btn" style="padding: 6px 16px;">Close</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL H: Samplers & Generation Parameters Modal -->
+  <div id="samplers-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content"
+      style="background: var(--bg-secondary); border-width: 2px; max-width: 500px; width: 95%; height: auto; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-md); padding: 0;">
+
+      <!-- Modal Header -->
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-bottom: 1px solid var(--border-muted); background: var(--bg-tertiary);">
+        <h2
+          style="font-family: var(--font-brand); font-size: 20px; color: var(--accent-gold); margin: 0; display: flex; align-items: center; gap: 10px;">
+          🎛️ Generation Samplers
+        </h2>
+        <button id="btn-close-samplers" class="btn" style="padding: 6px 12px; font-size: 12px;">Close</button>
+      </div>
+
+      <!-- Modal Scrollable Content -->
+      <div
+        style="flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; box-sizing: border-box;">
+
+        <p style="font-size: 12.5px; color: var(--text-muted); margin: 0 0 8px 0; line-height: 1.4;">
+          Adjust parameters to fine-tune how the AI generates text, controls creativity, and avoids repetition.
+        </p>
+
+        <!-- Temperature -->
+        <div class="form-group" style="margin-bottom: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label for="popup-param-temp"
+              style="font-size: 13px; font-weight: 600; color: var(--text-main);">Temperature</label>
+            <span id="popup-val-temp" style="color: var(--accent-gold); font-weight: bold; font-size: 13px;">0.80</span>
+          </div>
+          <input type="range" id="popup-param-temp" min="0.1" max="2.0" step="0.05" value="0.80" style="width: 100%;"
+            class="studio-slider">
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Higher values = more
+            creative & random; lower = more focused & repetitive.</span>
+        </div>
+
+        <!-- Top P -->
+        <div class="form-group" style="margin-bottom: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label for="popup-param-topp" style="font-size: 13px; font-weight: 600; color: var(--text-main);">Top P
+              (Nucleus)</label>
+            <span id="popup-val-topp" style="color: var(--accent-gold); font-weight: bold; font-size: 13px;">1.00</span>
+          </div>
+          <input type="range" id="popup-param-topp" min="0.0" max="1.0" step="0.05" value="1.00" style="width: 100%;"
+            class="studio-slider">
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Limits tokens to top
+            cumulative probability percentage. 1.00 to disable.</span>
+        </div>
+
+        <!-- Top K -->
+        <div class="form-group" style="margin-bottom: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label for="popup-param-topk" style="font-size: 13px; font-weight: 600; color: var(--text-main);">Top
+              K</label>
+            <span id="popup-val-topk" style="color: var(--accent-gold); font-weight: bold; font-size: 13px;">40</span>
+          </div>
+          <input type="range" id="popup-param-topk" min="0" max="100" step="1" value="40" style="width: 100%;"
+            class="studio-slider">
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Keeps only top K
+            most
+            likely tokens. Set to 0 to disable.</span>
+        </div>
+
+        <!-- Repetition Penalty -->
+        <div class="form-group" style="margin-bottom: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label for="popup-param-reppen"
+              style="font-size: 13px; font-weight: 600; color: var(--text-main);">Repetition
+              Penalty</label>
+            <span id="popup-val-reppen"
+              style="color: var(--accent-gold); font-weight: bold; font-size: 13px;">1.18</span>
+          </div>
+          <input type="range" id="popup-param-reppen" min="1.0" max="2.0" step="0.01" value="1.18" style="width: 100%;"
+            class="studio-slider">
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Discourages the
+            model
+            from repeating words. 1.0 is disabled.</span>
+        </div>
+
+        <!-- Max Tokens -->
+        <div class="form-group" style="margin-bottom: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label for="popup-param-maxtokens"
+              style="font-size: 13px; font-weight: 600; color: var(--text-main);">Response Length (Tokens)</label>
+            <span id="popup-val-maxtokens"
+              style="color: var(--accent-gold); font-weight: bold; font-size: 13px;">1024</span>
+          </div>
+          <input type="range" id="popup-param-maxtokens" min="64" max="4096" step="64" value="1024" style="width: 100%;"
+            class="studio-slider">
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Maximum token length
+            for the AI reply.</span>
+        </div>
+
+        <!-- Enable Suggestion Chips -->
+        <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px; margin-top: 12px; margin-bottom: 4px;">
+          <div style="text-align: left;">
+            <label for="popup-param-suggestion-chips" style="font-size: 13.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; display: block; cursor: pointer;">AI Suggestion Chips</label>
+            <span style="font-size: 11px; color: var(--text-muted); display: block; line-height: 1.4;">Generate 3 predictive quick actions/replies (consumes tokens).</span>
+          </div>
+          <label class="switch-toggle" style="position: relative; display: inline-block; width: 44px; height: 22px; margin-left: 12px; flex-shrink: 0; cursor: pointer;">
+            <input type="checkbox" id="popup-param-suggestion-chips" style="opacity: 0; width: 0; height: 0;" checked>
+            <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 22px; border: 1px solid var(--border-muted);"></span>
+          </label>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div
+        style="padding: 16px 24px; border-top: 1px solid var(--border-muted); background: var(--bg-tertiary); display: flex; justify-content: space-between; align-items: center;">
+        <button id="btn-popup-guide-link" class="btn"
+          style="padding: 6px 12px; font-size: 12px; color: var(--accent-gold); border-color: var(--accent-gold);">📖
+          Open
+          Samplers Guide</button>
+        <button id="btn-save-samplers" class="btn btn-cyan" style="padding: 8px 20px; font-weight: bold;">Apply &
+          Save</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL G: Guide Modal -->
+  <div id="guide-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content"
+      style="background: var(--bg-secondary); border-width: 2px; max-width: 720px; width: 95%; height: auto; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-md); padding: 0;">
+
+      <!-- Modal Header -->
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-bottom: 1px solid var(--border-muted); background: var(--bg-tertiary);">
+        <h2
+          style="font-family: var(--font-brand); font-size: 22px; color: var(--accent-gold); margin: 0; display: flex; align-items: center; gap: 10px;">
+          📖 JollyRP Power User Guide
+        </h2>
+        <button id="btn-close-guide" class="btn" style="padding: 6px 12px; font-size: 12px;">Close</button>
+      </div>
+
+      <!-- Modal Scrollable Content -->
+      <div
+        style="flex: 1; padding: 24px; overflow-y: auto; line-height: 1.6; font-size: 13.5px; color: var(--text-main); box-sizing: border-box;">
+
+        <h3
+          style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0 0 10px 0; font-size: 17px; border-bottom: 1px dashed var(--border-muted); padding-bottom: 6px;">
+          🎛️ Samplers & Parameters Explained</h3>
+
+        <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+          <div>
+            <strong style="color: var(--accent-gold);">🌡️ Temperature</strong>
+            <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-muted);">
+              Controls the randomness of the replies. Values between <strong>0.50 – 0.80</strong> are ideal for
+              realistic/coherent roleplay, keeping characters in-personality. Values above <strong>1.00</strong> unlock
+              pure creativity, but can eventually result in gibberish or prompt leaking.
+            </p>
+          </div>
+
+          <div>
+            <strong style="color: var(--accent-gold);">🌊 Top P (Nucleus Sampling)</strong>
+            <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-muted);">
+              Limits the model's word selection to a percentage of the most likely words. For example,
+              <strong>0.90</strong> means only the top 90% of words are considered, discarding the bottom 10% of
+              weird/unrelated choices. Keep it at <strong>1.00</strong> to disable filtering, or <strong>0.90 –
+                0.95</strong> to prune outliers.
+            </p>
+          </div>
+
+          <div>
+            <strong style="color: var(--accent-gold);">🎯 Top K</strong>
+            <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-muted);">
+              Filters the model's selection pool to exactly the <strong>N highest-ranking words</strong>. Lower values
+              (e.g. <strong>40</strong>) keep replies extremely consistent, whereas higher values allow more vocabulary
+              diversity. Set to <strong>0</strong> to disable it (relying solely on Top P).
+            </p>
+          </div>
+
+          <div>
+            <strong style="color: var(--accent-gold);">♻️ Repetition Penalty</strong>
+            <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-muted);">
+              Prevents the model from repeating identical phrases or getting stuck in loops. A value of
+              <strong>1.00</strong> is default (no penalty). Optimal settings for roleplay range from <strong>1.08 to
+                1.18</strong>. Values above 1.25 can cause the model to generate broken grammar to avoid standard words.
+            </p>
+          </div>
+
+          <div>
+            <strong style="color: var(--accent-gold);">📏 Max Response Length (Tokens)</strong>
+            <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-muted);">
+              Restricts how long a single model response can be. 1 token is roughly 0.75 words. <strong>512 -
+                1024</strong> tokens is standard for detailed replies. Set it higher if you enjoy reading novel-length
+              paragraphs.
+            </p>
+          </div>
+        </div>
+
+        <h3
+          style="font-family: var(--font-brand); color: var(--accent-gold); margin: 20px 0 10px 0; font-size: 17px; border-bottom: 1px dashed var(--border-muted); padding-bottom: 6px;">
+          ⚡ Model Tuning Presets</h3>
+        <p style="margin: 0 0 14px 0; font-size: 12.5px; color: var(--text-muted);">
+          Each model series responds best to tailored parameters. Click any preset below to instantly update your
+          settings.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+
+          <div
+            style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-muted); padding: 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
+            <div>
+              <strong style="color: var(--accent-gold); font-size: 14px;">🦙 Meta Llama 3 / 3.1</strong>
+              <p style="margin: 4px 0 0 0; font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">
+                Optimized for fluid, emotional narration and immersive action. Focuses on low repetition penalty and
+                slightly lower temp.
+              </p>
+            </div>
+            <button id="preset-btn-llama" class="btn btn-primary"
+              style="padding: 6px 12px; font-size: 11.5px; align-self: flex-start;">Apply Llama 3 Preset</button>
+          </div>
+
+          <div
+            style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-muted); padding: 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
+            <div>
+              <strong style="color: var(--accent-gold); font-size: 14px;">🎭 Anthropic Claude</strong>
+              <p style="margin: 4px 0 0 0; font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">
+                Optimized for prose and deep vocabulary. Disables Top K and applies zero repetition penalty to maintain
+                natural syntax.
+              </p>
+            </div>
+            <button id="preset-btn-claude" class="btn btn-primary"
+              style="padding: 6px 12px; font-size: 11.5px; align-self: flex-start;">Apply Claude Preset</button>
+          </div>
+
+          <div
+            style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-muted); padding: 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
+            <div>
+              <strong style="color: var(--accent-gold); font-size: 14px;">🐋 DeepSeek V3 / R1</strong>
+              <p style="margin: 4px 0 0 0; font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">
+                Optimized for structured logic and highly analytical scenarios. Uses lower temperature for reliable
+                alignment.
+              </p>
+            </div>
+            <button id="preset-btn-deepseek" class="btn btn-primary"
+              style="padding: 6px 12px; font-size: 11.5px; align-self: flex-start;">Apply DeepSeek Preset</button>
+          </div>
+
+          <div
+            style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-muted); padding: 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
+            <div>
+              <strong style="color: var(--accent-gold); font-size: 14px;">♊ Google Gemini</strong>
+              <p style="margin: 4px 0 0 0; font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">
+                Optimized for long-form detailed responses and broad context. Uses default temperature and low
+                repetition
+                penalty.
+              </p>
+            </div>
+            <button id="preset-btn-gemini" class="btn btn-primary"
+              style="padding: 6px 12px; font-size: 11.5px; align-self: flex-start;">Apply Gemini Preset</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL H: Room Creation Modal -->
+  <div id="room-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content"
+      style="background: var(--bg-secondary); max-width: 550px; width: 95%; height: auto; max-height: 90vh; border-radius: var(--radius-lg); border: 1px solid var(--border-muted); display: flex; flex-direction: column; overflow: hidden; padding: 0;">
+      <!-- Modal Header -->
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-bottom: 1px solid var(--border-muted); background: var(--bg-tertiary);">
+        <h3 id="room-modal-title"
+          style="font-family: var(--font-brand); font-size: 20px; color: var(--accent-gold); margin: 0; display: flex; align-items: center; gap: 8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            style="color: var(--accent-gold); flex-shrink: 0;">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Group Chat Room
+        </h3>
+        <button id="btn-close-room-modal" class="btn-icon"
+          style="padding: 6px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--text-muted); transition: background 0.2s;"
+          title="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <!-- Modal Content -->
+      <div
+        style="flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; box-sizing: border-box;">
+        <div class="form-group">
+          <label for="room-name"
+            style="font-size: 12px; color: var(--accent-gold); font-weight: 600; margin-bottom: 6px; display: block;">Room
+            Name</label>
+          <input type="text" id="room-name" class="input-field" placeholder="e.g. Tavern Brawl, Sci-Fi Alliance..."
+            style="width: 100%; box-sizing: border-box; height: 38px;">
+        </div>
+        <div class="form-group">
+          <label for="room-greeting"
+            style="font-size: 12px; color: var(--accent-gold); font-weight: 600; margin-bottom: 6px; display: block;">Custom
+            Greeting (Optional)</label>
+          <textarea id="room-greeting" class="textarea-field"
+            placeholder="Enter greeting message to start the room conversation..."
+            style="width: 100%; box-sizing: border-box; min-height: 80px; resize: vertical;"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="room-context"
+            style="font-size: 12px; color: var(--accent-gold); font-weight: 600; margin-bottom: 6px; display: block;">Scenario
+            / Guidelines Context (Optional)</label>
+          <textarea id="room-context" class="textarea-field"
+            placeholder="Define the setting, rules, or hidden dynamics (e.g. 'Character A is secretly flirty with User but behaves normally around Parents')..."
+            style="width: 100%; box-sizing: border-box; min-height: 80px; resize: vertical;"></textarea>
+        </div>
+        <div class="form-group">
+          <label
+            style="font-size: 12px; color: var(--accent-gold); font-weight: 600; margin-bottom: 6px; display: block;">Select
+            Cast Members (Minimum 2)</label>
+          <div id="room-character-selection"
+            style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; background: var(--bg-tertiary); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted);">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+      <!-- Modal Footer -->
+      <div
+        style="display: flex; justify-content: flex-end; gap: 10px; padding: 18px 24px; border-top: 1px solid var(--border-muted); background: var(--bg-tertiary);">
+        <button id="btn-cancel-room" class="btn">Cancel</button>
+        <button id="btn-save-room" class="btn btn-primary">Create Room</button>
+      </div>
+    </div>
+  </div>
+
+</div> <!-- Closing #app-container here to wrap all modals correctly -->
+
+<script type="module" src="./src/app.js"></script>
+</body>
+
+</html>
