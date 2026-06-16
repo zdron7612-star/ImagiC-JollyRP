@@ -27,10 +27,14 @@
 ## ✨ Features
 
 - **🎭 Uncensored & Local**: Your data never leaves your machine. Full AES-256 encryption protects your API keys locally. No filters, no tracking.
-- **🧠 Memory Ledger**: A visual memory manager that lets you view, edit, and inject context dynamically into your character's brain.
-- **🎨 Stunning UI**: A rich, dark-mode glassmorphism interface featuring dynamic blur effects, smooth micro-animations, and a highly customizable chat layout.
-- **📦 1-Click Backup**: Export your entire application state (Characters, Chats, API Keys) into a secure zip file and restore it seamlessly.
-- **🖥️ Universal Support**: Bring your own keys (OpenAI, Anthropic, OpenRouter) or seamlessly hook into your local LLMs (Ollama, LMStudio, Text Generation WebUI).
+- **☁️ Chub AI Community Integration**: Browse, search, filter, and 1-click import from Chub.ai's library of hundreds of thousands of community character cards directly within the app.
+- **👥 Multi-Character Group Chats**: Add multiple characters to a single room with custom scenarios. Features an **Auto-Mode** that lets the AI decide who speaks next, powered by a dynamic relationship/tension compiler.
+- **🧠 Memory Forge & Truth Ledger**: A visual memory manager with keyword-based RAG and automatic background summarization to keep context fresh.
+- **🎛️ Dialogue Director Controls**: Sliders to control model **Verbosity** (0 to 100) and **Action/Speech Ratio** (0 to 100) on the fly.
+- **🔞 NSFW Blur & Hover Reveal**: Smart blur coverage for sensitive cards and avatars that smoothly reveals on hover.
+- **🎨 Sleek Glassmorphism UI**: High-fidelity dark mode with dynamic blur, responsive animations, and customizable themes.
+- **📦 1-Click Backup**: Seamlessly export/import your entire application state (Characters, Chats, API Keys) via secure ZIP backups.
+- **🖥️ Universal API Support**: Plug in OpenRouter, OpenAI, HuggingFace, or run locally using Ollama, LMStudio, or KoboldAI.
 
 ---
 
