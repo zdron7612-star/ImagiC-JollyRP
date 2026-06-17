@@ -1,5 +1,5 @@
 import { presets } from './presets.js';
-import { scanLorebook, synthesizeSystemPrompt, synthesizeRoomSystemPrompt, buildApiMessages, summarizeToLedger, replacePlaceholders } from './memory.js';
+import { scanLorebook, synthesizeSystemPrompt, synthesizeRoomSystemPrompt, buildApiMessages, summarizeToLedger, summarizeChunk, retrieveTopK, buildTfIdf, replacePlaceholders } from './memory.js';
 import { streamChatCompletion, fetchChatCompletionJson, extractChoiceContent, FREE_MODELS } from './api.js';
 import { soundManager } from './sounds.js';
 
@@ -291,6 +291,13 @@ class JollyRPApp {
     
     this.activeStreamController = null;
     this.currentMood = 'neutral';
+    
+    // Cached regex for character name prefix stripping in formatAssistantText
+    this._cachedPrefixRegex = null;
+    this._cachedPrefixRegexCharId = null;
+    
+    // Auto-scroll lock: tracks whether user has manually scrolled up
+    this._userScrolledUp = false;
     
     // Filters configuration
     this.currentVisibilityFilter = 'all';
@@ -713,6 +720,11 @@ class JollyRPApp {
       this.populateBrowserVoices();
       window.speechSynthesis.onvoiceschanged = () => this.populateBrowserVoices();
     }
+
+    // Set up scroll lock detection on the chat thread
+    if (this.elements.chatThread) {
+      this._setupScrollLock(this.elements.chatThread);
+    }
   }
 
   bindDomElements() {
@@ -940,6 +952,8 @@ class JollyRPApp {
           name: `Conversation ${this.sessions[this.activeCharacterId].length + 1}`,
           messages: [{ role: 'assistant', content: startGreeting, id: `msg_${Date.now()}` }],
           ledger: "",
+          memoryChunks: [],
+          chunkCursor: 0,
           count: 0,
           createdAt: Date.now(),
           personaId: personaId
@@ -1289,6 +1303,8 @@ class JollyRPApp {
           name: `Conversation ${(this.sessions[charId] || []).length + 1}`,
           messages: [{ role: 'assistant', content: startGreeting, id: `msg_${Date.now()}` }],
           ledger: "",
+          memoryChunks: [],
+          chunkCursor: 0,
           count: 0,
           createdAt: Date.now(),
           personaId: personaId
@@ -1314,7 +1330,7 @@ class JollyRPApp {
 
         this.renderChatThread();
         this.renderMemoryLedger();
-        this.renderCharacterLists();
+        this.renderSidebarOnly();
         this.renderConversationsList();
         this.generateSuggestedChoices();
       });
@@ -1365,6 +1381,13 @@ class JollyRPApp {
         e.preventDefault();
         this.handleSendMessage();
       }
+    });
+    
+    // Auto-resize textarea as user types (grows up to max-height set in CSS)
+    this.elements.chatInput.addEventListener('input', () => {
+      const el = this.elements.chatInput;
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 140) + 'px';
     });
 
     // Sound board triggers
@@ -2410,33 +2433,28 @@ class JollyRPApp {
     }, duration);
   }
 
-  renderCharacterLists() {
-    // Sidebar list (Active Cast: top 10 characters by last convo activity)
+  /**
+   * Renders ONLY the sidebar character list + room list, without touching the grid.
+   * Use this when in chat context where the landing screen is not visible.
+   */
+  renderSidebarOnly() {
+    if (!this.elements.sidebarCharList) return;
     this.elements.sidebarCharList.innerHTML = '';
     
-    // Sort characters for sidebar
     const sortedActiveCast = [...this.characters].sort((a, b) => {
       const chatsA = this.sessions[a.id] || [];
       const chatsB = this.sessions[b.id] || [];
-      
       const lastTimeA = chatsA.length > 0 ? Math.max(...chatsA.map(c => c.createdAt || 0)) : 0;
       const lastTimeB = chatsB.length > 0 ? Math.max(...chatsB.map(c => c.createdAt || 0)) : 0;
-      
-      if (lastTimeB !== lastTimeA) {
-        return lastTimeB - lastTimeA; // Most recently active first
-      }
-      
-      // Secondary sort: alphabetical by name
+      if (lastTimeB !== lastTimeA) return lastTimeB - lastTimeA;
       return a.name.localeCompare(b.name);
     }).slice(0, 10);
 
     const sidebarFragment = document.createDocumentFragment();
     sortedActiveCast.forEach(char => {
-      // Sidebar list item
       const item = document.createElement('div');
       item.className = `character-item ${char.id === this.activeCharacterId ? 'active' : ''}`;
       item.addEventListener('click', () => this.openCharacterProfile(char.id));
-      
       item.innerHTML = `
         <div class="char-avatar-frame">
           <img class="char-avatar" src="${char.avatar}" alt="${escapeHTML(char.name)}">
@@ -2449,9 +2467,12 @@ class JollyRPApp {
       sidebarFragment.appendChild(item);
     });
     this.elements.sidebarCharList.appendChild(sidebarFragment);
-
-    // Render room list in sidebar
     this.renderRoomList();
+  }
+
+  renderCharacterLists() {
+    // Sidebar list (Active Cast: top 10 characters by last convo activity)
+    this.renderSidebarOnly();
 
     // Render landing presets grid via unified filters rendering ONLY if landing screen is visible
     if (this.elements.landingScreen && this.elements.landingScreen.style.display !== 'none') {
@@ -3763,16 +3784,26 @@ class JollyRPApp {
     this.elements.chatHeaderAvatar.src = char.avatar;
     this.elements.chatHeaderTagline.textContent = char.tagline;
 
-    // Load session array
     if (!this.sessions[charId] || !Array.isArray(this.sessions[charId])) {
       if (this.sessions[charId] && this.sessions[charId].messages) {
         // Migrate single session to array
         const oldSession = this.sessions[charId];
+        // Migrate old flat ledger as a seed chunk if present
+        const seedChunks = [];
+        if (oldSession.ledger && oldSession.ledger.trim()) {
+          seedChunks.push({
+            summary: oldSession.ledger.trim(),
+            tfidf: buildTfIdf(oldSession.ledger),
+            timestamp: Date.now()
+          });
+        }
         this.sessions[charId] = [{
           id: `chat_${Date.now()}`,
           name: "Original Conversation",
           messages: oldSession.messages || [],
           ledger: oldSession.ledger || "",
+          memoryChunks: seedChunks,
+          chunkCursor: oldSession.summaryCursor || 0,
           count: oldSession.count || 0,
           createdAt: Date.now()
         }];
@@ -3782,6 +3813,8 @@ class JollyRPApp {
           name: "Conversation 1",
           messages: [{ role: 'assistant', content: char.firstMessage, id: `msg_${Date.now()}` }],
           ledger: "",
+          memoryChunks: [],
+          chunkCursor: 0,
           count: 0,
           createdAt: Date.now()
         }];
@@ -3804,9 +3837,12 @@ class JollyRPApp {
       }
     }
 
+    // Patch any legacy messages that are missing IDs — runs once on session activation
+    this.patchSessionMessageIds(activeChat);
+
     this.renderChatThread();
     this.renderMemoryLedger();
-    this.renderCharacterLists();
+    this.renderSidebarOnly();
     this.renderConversationsList();
     this.generateSuggestedChoices();
   }
@@ -4082,11 +4118,7 @@ class JollyRPApp {
       
       const chats = this.sessions[charId] || [];
       chats.forEach(chat => {
-        activeChats.push({
-          char,
-          chat,
-          charId
-        });
+        activeChats.push({ char, chat, charId });
       });
     });
     
@@ -4106,9 +4138,7 @@ class JollyRPApp {
         const lastMsg = item.chat.messages[item.chat.messages.length - 1];
         if (lastMsg.id && lastMsg.id.startsWith('msg_')) {
           const ts = parseInt(lastMsg.id.split('_')[1]);
-          if (!isNaN(ts)) {
-            lastTime = Math.max(lastTime, ts);
-          }
+          if (!isNaN(ts)) lastTime = Math.max(lastTime, ts);
         }
       }
       item.lastActiveTime = lastTime;
@@ -4121,9 +4151,13 @@ class JollyRPApp {
       const activePersonaId = item.chat.personaId || 'persona_default';
       const activePersona = this.getActivePersona(activePersonaId);
       const cleanedLastMsg = this.replacePlaceholders(lastMsgText, item.char.name, activePersona.name || 'User');
-      const formattedMsgText = this.formatActionText(cleanedLastMsg);
+      // Use lightweight plaintext preview instead of full formatter — avoids expensive char-by-char parsing for thumbnail snippets
+      const previewText = escapeHTML(stripHtmlTags(cleanedLastMsg).substring(0, 120).trim() + (cleanedLastMsg.length > 120 ? '...' : ''));
       const relativeTime = this.formatRelativeTime(item.lastActiveTime);
       const msgCount = item.chat.messages.length;
+      
+      // Show session name only for non-default sessions (forked branches, custom names)
+      const sessionName = item.chat.name && item.chat.name !== 'New Chat' && item.chat.name !== item.char.name ? escapeHTML(item.chat.name) : '';
       
       const isNsfw = item.char.nsfw || 
                      (item.char.tags && item.char.tags.some(t => t.toLowerCase() === 'nsfw')) || 
@@ -4138,11 +4172,12 @@ class JollyRPApp {
         <div class="my-chats-card-header">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           <span>${escapeHTML(item.char.name)}</span>
+          ${sessionName ? `<span style="font-size: 10px; color: var(--accent-gold); margin-left: 4px; opacity: 0.8;">· ${sessionName}</span>` : ''}
         </div>
         
         <div class="my-chats-card-body">
           <img class="my-chats-card-img ${shouldBlur ? 'nsfw-blurred' : ''}" src="${item.char.avatar}" alt="${escapeHTML(item.char.name)}" loading="lazy" decoding="async">
-          <div class="my-chats-card-text">${formattedMsgText}</div>
+          <div class="my-chats-card-text">${previewText}</div>
         </div>
         
         <div class="my-chats-card-footer">
@@ -4183,10 +4218,17 @@ class JollyRPApp {
     this.elements.chatHeaderAvatar.src = char.avatar;
     this.elements.chatHeaderTagline.textContent = char.tagline;
     
+    // Patch legacy messages missing IDs — once on session load
+    const session = this.getActiveSession();
+    this.patchSessionMessageIds(session);
+    
+    // Force scroll lock reset so new chat starts at bottom
+    this._userScrolledUp = false;
+    
     this.renderChatThread();
     this.scheduleIdleWork(() => {
       this.renderMemoryLedger();
-      this.renderCharacterLists();
+      this.renderSidebarOnly();
       this.renderConversationsList();
       this.generateSuggestedChoices();
     }, 500);
@@ -4195,15 +4237,24 @@ class JollyRPApp {
   getActiveSession() {
     const chats = this.sessions[this.activeCharacterId];
     if (!chats || chats.length === 0) return null;
-    const session = chats.find(c => c.id === this.activeChatId) || chats[0];
-    if (session && session.messages) {
-      session.messages.forEach(msg => {
-        if (!msg.id) {
-          msg.id = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        }
-      });
-    }
-    return session;
+    return chats.find(c => c.id === this.activeChatId) || chats[0];
+  }
+
+  /**
+   * Ensures all messages in a session have unique IDs.
+   * Called once when a session is activated, not on every access.
+   */
+  patchSessionMessageIds(session) {
+    if (!session || !session.messages) return;
+    let lastTs = 0;
+    session.messages.forEach(msg => {
+      if (!msg.id) {
+        // Increment timestamp slightly to guarantee uniqueness within the same ms
+        const ts = Math.max(Date.now(), lastTs + 1);
+        lastTs = ts;
+        msg.id = `msg_${ts}_${Math.random().toString(36).substr(2, 9)}`;
+      }
+    });
   }
 
   forkSessionAtMessage(messageId) {
@@ -4231,6 +4282,8 @@ class JollyRPApp {
       name: forkedName,
       messages: JSON.parse(JSON.stringify(forkedMessages)),
       ledger: chat.ledger || "",
+      memoryChunks: JSON.parse(JSON.stringify(chat.memoryChunks || [])),
+      chunkCursor: msgIndex + 1, // fork cursor starts at the fork point
       count: chat.count || 0,
       createdAt: Date.now(),
       personaId: chat.personaId || 'persona_default',
@@ -5018,11 +5071,16 @@ class JollyRPApp {
     const matchedLore = scanLorebook(cleanedUserText, char.lorebook);
     this.renderActiveLore(matchedLore);
 
+    // Retrieve relevant RAG memory chunks
+    const lastAiMsgRegen = history.filter(m => m.role === 'assistant').slice(-1)[0];
+    const ragQueryRegen = cleanedUserText + (lastAiMsgRegen ? ' ' + lastAiMsgRegen.content : '');
+    const retrievedChunksRegen = retrieveTopK(ragQueryRegen, session.memoryChunks || [], 3);
+
     const systemPrompt = synthesizeSystemPrompt(char, session.ledger, matchedLore, {
       verbosity: this.verbosity,
       actionRatio: this.actionRatio,
       maxTokens: this.generationParams.max_tokens
-    }, activePersona);
+    }, activePersona, retrievedChunksRegen);
 
     const apiMessages = buildApiMessages(systemPrompt, history, 12, this.instructTemplate, char.name, activePersona.name);
 
@@ -5204,8 +5262,33 @@ class JollyRPApp {
     }
   }
 
-  scrollToBottom() {
-    this.elements.chatThread.scrollTop = this.elements.chatThread.scrollHeight;
+  scrollToBottom(force = false) {
+    const thread = this.elements.chatThread;
+    if (!thread) return;
+    // Only auto-scroll if user hasn't manually scrolled up, or if forced (new message send)
+    if (force || !this._userScrolledUp) {
+      // Use requestAnimationFrame to batch the scroll with the paint cycle,
+      // avoiding forced synchronous layout during streaming chunks
+      if (this._scrollRafId) cancelAnimationFrame(this._scrollRafId);
+      this._scrollRafId = requestAnimationFrame(() => {
+        this._scrollRafId = null;
+        thread.scrollTop = thread.scrollHeight;
+      });
+    }
+  }
+
+  /**
+   * Set up the scroll listener for auto-scroll lock detection.
+   * Call once after chat thread is in DOM.
+   */
+  _setupScrollLock(thread) {
+    if (thread._scrollLockBound) return; // prevent double-binding
+    thread._scrollLockBound = true;
+    thread.addEventListener('scroll', () => {
+      // Consider user "at bottom" if within 80px of scrollHeight
+      const distFromBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight;
+      this._userScrolledUp = distFromBottom > 80;
+    }, { passive: true });
   }
 
   scheduleIdleWork(callback, timeout = 250) {
@@ -6075,12 +6158,16 @@ ${nsfwInstructions}
     const matchedLore = scanLorebook(cleanedUserText, char.lorebook);
     this.renderActiveLore(matchedLore);
 
-    // 3. Build API prompts
+    // 3. Build API prompts — retrieve relevant past memory chunks
+    const lastAiMsg = session.messages.filter(m => m.role === 'assistant').slice(-1)[0];
+    const ragQuery = cleanedUserText + (lastAiMsg ? ' ' + lastAiMsg.content : '');
+    const retrievedChunks = retrieveTopK(ragQuery, session.memoryChunks || [], 3);
+
     const systemPrompt = synthesizeSystemPrompt(char, session.ledger, matchedLore, {
       verbosity: this.verbosity,
       actionRatio: this.actionRatio,
       maxTokens: this.generationParams.max_tokens
-    }, activePersona);
+    }, activePersona, retrievedChunks);
 
     const messages = buildApiMessages(systemPrompt, session.messages, 12, this.instructTemplate, char.name, activePersona.name);
 
@@ -6092,9 +6179,28 @@ ${nsfwInstructions}
     this.activeStreamController = new AbortController();
     
     let assistantResponse = "";
+    let firstChunkReceived = false;
+    
+    // 30-second timeout: if no chunks arrive, show a timeout indicator
+    const streamTimeoutId = setTimeout(() => {
+      if (!firstChunkReceived && this.activeStreamController) {
+        textNode.innerHTML = `
+          <div class="stream-error-card">
+            <span class="stream-error-icon">⏱️</span>
+            <div>
+              <div class="stream-error-title">Response timed out</div>
+              <div class="stream-error-msg">The model didn't respond within 30 seconds. Click Stop, then try sending again.</div>
+            </div>
+          </div>
+        `;
+      }
+    }, 30000);
     
     // Disable inputs during streaming
     this.setGeneratingState(true);
+    // Force scroll to bottom on new user message (override any user scroll lock)
+    this._userScrolledUp = false;
+    this.scrollToBottom(true);
     
     this.executeChatWithFallbacks({
       apiKey: this.apiKey,
@@ -6111,7 +6217,9 @@ ${nsfwInstructions}
         max_tokens: this.generationParams.max_tokens
       },
       onChunk: (chunk) => {
-        if (assistantResponse === "") {
+        if (!firstChunkReceived) {
+          firstChunkReceived = true;
+          clearTimeout(streamTimeoutId);
           textNode.innerHTML = "";
         }
         assistantResponse += chunk;
@@ -6121,6 +6229,7 @@ ${nsfwInstructions}
         this.scrollToBottom();
       },
       onFinish: async (fullText) => {
+        clearTimeout(streamTimeoutId);
         this.setGeneratingState(false);
         this.activeStreamController = null;
         
@@ -6132,36 +6241,48 @@ ${nsfwInstructions}
           swipes: [cleanedFullText],
           swipeId: 0
         });
-        // 5. Automated background Ledger compilation (Memory consolidation)
+        // 5. RAG Memory: chunk-and-store background summarization
         if (this.autoSummarizeEnabled) {
-          const summaryCursor = session.summaryCursor || 0;
-          const messagesToConsider = session.messages.length - summaryCursor;
-          
-          if (messagesToConsider >= this.summarizeTriggerN + this.summarizeKeepN) {
-            console.log("Auto-Summarization threshold met. Triggering background summarizer...");
-            
-            const messagesToSummarize = session.messages.slice(summaryCursor, session.messages.length - this.summarizeKeepN);
-            const originalLedger = session.ledger || "";
-            
+          const CHUNK_SIZE = 10; // messages per chunk (user+assistant pairs = 5 turns)
+          const KEEP_N = 6;      // keep this many recent messages out of the chunk window
+          const MAX_CHUNKS = 150; // cap total stored chunks to prevent unbounded growth
+
+          if (!session.memoryChunks) session.memoryChunks = [];
+          if (!session.chunkCursor) session.chunkCursor = 0;
+
+          const totalSaved = session.chunkCursor;
+          const available = session.messages.length - totalSaved;
+
+          if (available >= CHUNK_SIZE + KEEP_N) {
+            const chunkMessages = session.messages.slice(totalSaved, session.messages.length - KEEP_N);
+            const newCursor = totalSaved + chunkMessages.length;
+
+            console.log(`RAG: chunking ${chunkMessages.length} messages (cursor ${totalSaved} → ${newCursor})`);
+
             if (this.elements.memorySummaryText) {
-              this.elements.memorySummaryText.innerHTML = "<em>Running Background Summarization...</em>";
+              this.elements.memorySummaryText.innerHTML = '<em>Storing memory chunk...</em>';
             }
-            
-            summarizeToLedger(
+
+            summarizeChunk(
               this.apiKey,
               this.activeModel,
-              originalLedger,
-              messagesToSummarize,
+              chunkMessages,
               this.apiProvider,
               this.customApiUrl
-            ).then(newLedger => {
-              session.ledger = newLedger;
-              session.summaryCursor = summaryCursor + messagesToSummarize.length;
-              this.saveSessions();
-              this.renderMemoryLedger();
-              console.log("Background summarization completed successfully.");
+            ).then(chunk => {
+              if (chunk) {
+                session.memoryChunks.push(chunk);
+                // Cap total chunks
+                if (session.memoryChunks.length > MAX_CHUNKS) {
+                  session.memoryChunks = session.memoryChunks.slice(-MAX_CHUNKS);
+                }
+                session.chunkCursor = newCursor;
+                this.saveSessions();
+                this.renderMemoryLedger();
+                console.log(`RAG: chunk stored. Total chunks: ${session.memoryChunks.length}`);
+              }
             }).catch(err => {
-              console.error("Auto-Summarization failed:", err);
+              console.error('RAG: chunk storage failed:', err);
               this.renderMemoryLedger();
             });
           }
@@ -6228,31 +6349,9 @@ ${nsfwInstructions}
         this.analyzeMoodAndApplyTheme(fullText);
         this.generateSuggestedChoices();
         this.saveSessions();
-
-        // 5. Automated background Ledger compilation (Memory consolidation)
-        if (session.count > 0 && session.count % 8 === 0) {
-          console.log("Memory count threshold met. Consolidating ledger...");
-          const originalLedger = session.ledger;
-          
-          // Show updating text in ledger panel
-          this.elements.memorySummaryText.innerHTML = "<em>Updating Chronological Ledger...</em>";
-          
-          // Summarize the middle portion of conversation (last 16 messages)
-          const updatedLedger = await summarizeToLedger(
-            this.apiKey,
-            this.activeModel,
-            originalLedger,
-            session.messages.slice(-16),
-            this.apiProvider,
-            this.customApiUrl
-          );
-          
-          session.ledger = updatedLedger;
-          this.saveSessions();
-          this.renderMemoryLedger();
-        }
       },
       onError: (err) => {
+        clearTimeout(streamTimeoutId);
         this.setGeneratingState(false);
         this.activeStreamController = null;
         console.error("Stream completion error:", err);
@@ -6266,19 +6365,43 @@ ${nsfwInstructions}
             swipes: [assistantResponse],
             swipeId: 0
           });
-          session.count = (session.count || 0) + 1;
           this.saveSessions();
           this.renderChatThread();
         } else {
           if (err.name === 'AbortError' || err.message.toLowerCase().includes('abort')) {
             bubble.remove();
           } else {
-            // If no text was received, show the error in the temporary bubble so the user knows what went wrong.
-            // Mark it as an error-only bubble so the delete button can surgically remove it from the DOM
-            // even though it was never committed to session.messages.
+            // Show actionable error card with contextual tips and retry button
             bubble.setAttribute('data-error-bubble', 'true');
-            textNode.innerHTML = `<span style="color: var(--accent-crimson);">[Error: ${err.message}]</span>`;
-            // Show delete button immediately so the user can dismiss the error easily
+            const isAuth = err.message.includes('401') || err.message.toLowerCase().includes('unauthorized') || err.message.toLowerCase().includes('api key');
+            const isRate = err.message.includes('429') || err.message.toLowerCase().includes('rate limit') || err.message.toLowerCase().includes('too many');
+            const isTimeout = err.message.toLowerCase().includes('timeout') || err.message.toLowerCase().includes('timed out');
+            const tip = isAuth ? 'Check your API key in Settings.' :
+                        isRate ? 'Model may be rate-limited. Wait a moment and try again.' :
+                        isTimeout ? 'The model took too long. Try again or reduce Max Tokens.' :
+                        'Try again, or switch models in Settings.';
+            textNode.innerHTML = `
+              <div class="stream-error-card">
+                <span class="stream-error-icon">⚠️</span>
+                <div style="flex: 1;">
+                  <div class="stream-error-title">Generation failed</div>
+                  <div class="stream-error-msg">${escapeHTML(err.message)}</div>
+                  <div class="stream-error-tip">${tip}</div>
+                </div>
+                <button class="stream-error-retry-btn" title="Retry last message">↩ Retry</button>
+              </div>
+            `;
+            // Retry button re-sends the last user message
+            const retryBtn = textNode.querySelector('.stream-error-retry-btn');
+            if (retryBtn) {
+              retryBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Remove error bubble and retrigger
+                bubble.remove();
+                this.triggerNextReply();
+              });
+            }
+            // Show delete button
             const errDeleteBtn = bubble.querySelector('.msg-delete-btn');
             if (errDeleteBtn) errDeleteBtn.style.display = 'inline-flex';
           }
@@ -6291,36 +6414,46 @@ ${nsfwInstructions}
     const session = this.getActiveSession();
     if (!session) return;
 
-    const ledgerText = session.ledger || "No memories captured yet. The system will compile key actions every 8 exchanges.";
-    this.elements.memorySummaryText.innerText = ledgerText;
+    const chunks = session.memoryChunks || [];
+    const chunkCount = chunks.length;
 
-    // Render Chronicle Timeline
+    // Update the summary text area — show count and most-recent chunk summary
+    if (this.elements.memorySummaryText) {
+      if (chunkCount === 0) {
+        this.elements.memorySummaryText.innerText = 'No memories stored yet. The system will automatically summarize and store memory after every 10 messages.';
+      } else {
+        const latest = chunks[chunkCount - 1];
+        this.elements.memorySummaryText.innerText = `${chunkCount} memory chunk${chunkCount === 1 ? '' : 's'} stored.\n\nMost recent:\n${latest.summary}`;
+      }
+    }
+
+    // Render Chronicle Timeline using memory chunks
     const timelineEl = document.getElementById('memory-chronicle-timeline');
     if (timelineEl) {
       timelineEl.innerHTML = '';
-      
+
       const events = [];
-      
-      // Let's add session creation event
+
       events.push({
         time: new Date(session.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        title: "Adventure Initiated",
-        desc: "Started conversation with active companion.",
+        title: 'Adventure Initiated',
+        desc: 'Started conversation with active companion.',
         type: 'start'
       });
 
-      // Parse Ledger bullets
-      if (session.ledger) {
-        const lines = session.ledger.split(/\r?\n/).map(l => l.trim().replace(/^[-*•]\s*/, '')).filter(Boolean);
-        lines.forEach((line, idx) => {
+      // Each chunk becomes a timeline entry; its bullet points become sub-items
+      chunks.forEach((chunk, chunkIdx) => {
+        const chunkTime = new Date(chunk.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const lines = chunk.summary.split(/\r?\n/).map(l => l.trim().replace(/^[-*•]\s*/, '')).filter(Boolean);
+        lines.forEach((line, lineIdx) => {
           events.push({
-            time: `Milestone #${idx + 1}`,
-            title: "Fact Recorded",
+            time: lineIdx === 0 ? `Memory ${chunkIdx + 1} · ${chunkTime}` : '',
+            title: lineIdx === 0 ? `Memory Chunk #${chunkIdx + 1}` : '',
             desc: line,
             type: 'fact'
           });
         });
-      }
+      });
 
       events.forEach(ev => {
         const item = document.createElement('div');
@@ -6330,8 +6463,8 @@ ${nsfwInstructions}
         item.style.paddingLeft = '10px';
         item.style.marginLeft = '4px';
         item.style.position = 'relative';
+        item.style.marginBottom = '6px';
 
-        // Add a dot on the line
         const dot = document.createElement('div');
         dot.style.position = 'absolute';
         dot.style.left = '-6px';
@@ -6346,18 +6479,15 @@ ${nsfwInstructions}
         const content = document.createElement('div');
         content.style.flex = '1';
         content.innerHTML = `
-          <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--accent-gold); font-weight: bold;">
-            <span>${ev.title}</span>
-            <span style="opacity: 0.7;">${ev.time}</span>
-          </div>
+          ${ev.title ? `<div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--accent-gold); font-weight: bold;"><span>${ev.title}</span><span style="opacity: 0.7;">${ev.time}</span></div>` : ''}
           <div style="font-size: 11.5px; color: var(--text-light); margin-top: 2px; line-height: 1.3;">${ev.desc}</div>
         `;
         item.appendChild(content);
         timelineEl.appendChild(item);
       });
 
-      if (events.length === 0) {
-        timelineEl.innerHTML = '<div style="font-size: 12px; color: var(--text-muted); font-style: italic;">No timeline events recorded yet.</div>';
+      if (events.length <= 1) {
+        timelineEl.innerHTML = '<div style="font-size: 12px; color: var(--text-muted); font-style: italic;">No memory chunks recorded yet. Memories will form automatically as your conversation grows.</div>';
       }
     }
   }
@@ -6365,7 +6495,13 @@ ${nsfwInstructions}
   updateActiveLedgerText(newText) {
     const session = this.getActiveSession();
     if (!session) return;
+    // For backward compat keep ledger field, but also update last chunk if available
     session.ledger = newText;
+    if (session.memoryChunks && session.memoryChunks.length > 0) {
+      // Update last chunk summary with manual edit
+      const lastChunk = session.memoryChunks[session.memoryChunks.length - 1];
+      lastChunk.summary = newText;
+    }
     this.saveSessions();
   }
 
@@ -7285,17 +7421,21 @@ ${nsfwInstructions}
     if (!text) return '';
     
     // Get active character name to strip prefix if present
-    const activeChar = this.characters ? this.characters.find(c => c.id === this.activeCharacterId) : null;
-    const charName = activeChar ? activeChar.name : '';
-    
-    // Clean up prefix
+    // Cache the compiled regex per-character to avoid constructing it on every streaming chunk
     let cleaned = text;
-    if (charName) {
-      const escapedName = charName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-      cleaned = cleaned.replace(new RegExp(`^${escapedName}\\s*:\\s*`, 'i'), '');
+    if (this.activeCharacterId !== this._cachedPrefixRegexCharId) {
+      const activeChar = this.characters ? this.characters.find(c => c.id === this.activeCharacterId) : null;
+      if (activeChar && activeChar.name) {
+        const escapedName = activeChar.name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        this._cachedPrefixRegex = new RegExp(`^${escapedName}\\s*:\\s*`, 'i');
+      } else {
+        this._cachedPrefixRegex = null;
+      }
+      this._cachedPrefixRegexCharId = this.activeCharacterId;
     }
-    // Generic name prefix cleaning
-    cleaned = cleaned.replace(/^[A-Za-z0-9_\s\-\'\"]{1,30}\s*:\s*/, '');
+    if (this._cachedPrefixRegex) {
+      cleaned = cleaned.replace(this._cachedPrefixRegex, '');
+    }
     
     // Trim any leading newlines/spaces left after stripping the prefix
     cleaned = cleaned.trimStart();
@@ -7649,6 +7789,8 @@ ${nsfwInstructions}
       name: `Room Chat 1`,
       messages: [{ role: 'assistant', content: placeholderContent, id: openingMsgId }],
       ledger: '',
+      memoryChunks: [],
+      chunkCursor: 0,
       count: 0,
       createdAt: Date.now(),
       roomName: name,
@@ -8016,8 +8158,7 @@ WRITING RULES:
     this.renderSpeakerStrip(chat);
     this.renderChatThread();
     this.renderMemoryLedger();
-    this.renderCharacterLists();
-    this.renderRoomList();
+    this.renderSidebarOnly();
     this.renderConversationsList();
     this.generateSuggestedChoices();
   }
@@ -8167,12 +8308,16 @@ WRITING RULES:
     const matchedLore = scanLorebook(lastMsgText, char.lorebook);
     this.renderActiveLore(matchedLore);
 
+    // Retrieve relevant RAG memory chunks for triggerNextReply
+    const ragQueryTrigger = lastMsgText + (session.messages.length > 1 ? ' ' + session.messages[session.messages.length - 2].content : '');
+    const retrievedChunksTrigger = retrieveTopK(ragQueryTrigger, session.memoryChunks || [], 3);
+
     const systemPrompt = synthesizeSystemPrompt(char, session.ledger, matchedLore, {
       verbosity: this.verbosity,
       actionRatio: this.actionRatio,
       maxTokens: this.generationParams.max_tokens,
       systemPromptOverride: session.systemPromptOverride || ''
-    }, activePersona);
+    }, activePersona, retrievedChunksTrigger);
 
     const messages = buildApiMessages(
       systemPrompt, 
@@ -8317,6 +8462,9 @@ WRITING RULES:
     const allLore = chars.flatMap(c => c.lorebook || []);
     const matchedLore = scanLorebook(recentText, allLore);
 
+    // Retrieve relevant RAG memory chunks for room
+    const retrievedChunksRoom = retrieveTopK(recentText, chat.memoryChunks || [], 3);
+
     const systemPrompt = synthesizeRoomSystemPrompt(
       chat.roomName || 'Group Room',
       chars,
@@ -8332,7 +8480,8 @@ WRITING RULES:
       activePersona,
       chat.roomContext || '',
       isAutoMode,
-      roomMuted
+      roomMuted,
+      retrievedChunksRoom
     );
 
     // Prefix assistant messages in history with speaker name for context
@@ -8433,6 +8582,29 @@ WRITING RULES:
         this.saveSessions();
         this.renderSpeakerStrip(chat);
         this.renderChatThread();
+
+        // RAG Memory: chunk-and-store for room sessions
+        if (this.autoSummarizeEnabled) {
+          const CHUNK_SIZE = 10;
+          const KEEP_N = 6;
+          const MAX_CHUNKS = 150;
+          if (!chat.memoryChunks) chat.memoryChunks = [];
+          if (!chat.chunkCursor) chat.chunkCursor = 0;
+          const available = chat.messages.length - chat.chunkCursor;
+          if (available >= CHUNK_SIZE + KEEP_N) {
+            const chunkMessages = chat.messages.slice(chat.chunkCursor, chat.messages.length - KEEP_N);
+            const newCursor = chat.chunkCursor + chunkMessages.length;
+            summarizeChunk(this.apiKey, this.activeModel, chunkMessages, this.apiProvider, this.customApiUrl)
+              .then(chunk => {
+                if (chunk) {
+                  chat.memoryChunks.push(chunk);
+                  if (chat.memoryChunks.length > MAX_CHUNKS) chat.memoryChunks = chat.memoryChunks.slice(-MAX_CHUNKS);
+                  chat.chunkCursor = newCursor;
+                  this.saveSessions();
+                }
+              }).catch(err => console.error('RAG room chunk failed:', err));
+          }
+        }
 
         this.analyzeMoodAndApplyTheme(fullText);
         this.generateSuggestedChoices();

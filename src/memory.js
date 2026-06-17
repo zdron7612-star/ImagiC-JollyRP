@@ -1,9 +1,16 @@
 import { fetchChatCompletionJson, extractChoiceContent } from './api.js';
 
 /**
- * Memory Forge & Truth Ledger Management
- * Handles sliding window chat history, lorebook keyword matching, 
- * and prompt generation based on sliders and memory ledger.
+ * Memory Forge — RAG Semantic Long-Term Memory
+ * Handles sliding window chat history, lorebook keyword matching,
+ * TF-IDF based chunk retrieval, and prompt generation.
+ *
+ * Architecture:
+ *   - Messages are chunked every N turns and summarized into compact memory chunks.
+ *   - Each chunk is stored with a TF-IDF vector for semantic similarity retrieval.
+ *   - On each send, the top-K most relevant chunks are retrieved and injected into
+ *     the system prompt as RETRIEVED MEMORIES, separate from the rolling context window.
+ *   - No cumulative/monolithic ledger is maintained.
  */
 
 export function replacePlaceholders(text, charName, userName) {
@@ -147,7 +154,7 @@ export function mapSlidersToPrompt(sliders = {}) {
  * @param {object} options - Custom dialogue director options (tone, action ratio)
  * @param {object} persona - Active user persona details
  */
-export function synthesizeSystemPrompt(character, truthLedger = "", matchedLore = [], options = {}, persona = null) {
+export function synthesizeSystemPrompt(character, truthLedger = "", matchedLore = [], options = {}, persona = null, retrievedChunks = []) {
   const charName = character.name || 'Character';
   const userName = persona ? (persona.name || 'User') : 'User';
 
@@ -221,8 +228,8 @@ Roleplay Rules:
     if (cleanPersonaSpeech) prompt += `- Speech Quirks/Style: ${cleanPersonaSpeech}\n`;
   }
 
-  if (truthLedger && truthLedger.trim()) {
-    prompt += `\nSTORY SO FAR (Truth Ledger - absolute facts established in conversation):\n${truthLedger}\n`;
+  if (retrievedChunks && retrievedChunks.length) {
+    prompt += `\nRELEVANT PAST EVENTS (retrieved from long-term memory — treat these as established facts):\n${retrievedChunks.map(c => `- ${c}`).join('\n')}\n`;
   }
 
   if (cleanMatchedLore.length) {
@@ -327,31 +334,93 @@ export function buildApiMessages(systemPrompt, chatHistory, maxHistoryLength = 1
   return messages;
 }
 
+// ============================================================
+// RAG SEMANTIC MEMORY ENGINE
+// ============================================================
+
 /**
- * Triggers a summarization API call to condense older messages and update the Truth Ledger.
- * @param {string} apiKey - OpenRouter key
- * @param {string} model - Model identifier to use
- * @param {string} currentLedger - Current Truth Ledger summary
- * @param {Array} messagesToSummarize - Array of messages to synthesize into ledger
- * @returns {Promise<string>} The updated Truth Ledger text
+ * Build a TF-IDF vector (Map<term, tf-idf-score>) for the given text.
+ * IDF is approximated as log(1 + 1/freq) since we have no corpus—
+ * for retrieval in a single session this is equivalent to TF weighting.
+ * @param {string} text
+ * @returns {Map<string, number>}
  */
-export async function summarizeToLedger(apiKey, model, currentLedger, messagesToSummarize, provider = 'openrouter', customUrl = '') {
-  if (!messagesToSummarize.length) return currentLedger;
-  if (provider !== 'custom' && provider !== 'pollinations' && !apiKey) return currentLedger;
+export function buildTfIdf(text) {
+  const tokens = tokenize(text);
+  if (!tokens.length) return new Map();
+  const freq = new Map();
+  for (const t of tokens) freq.set(t, (freq.get(t) || 0) + 1);
+  const vec = new Map();
+  for (const [term, count] of freq) {
+    vec.set(term, count / tokens.length); // normalized TF
+  }
+  return vec;
+}
 
-  const conversationText = messagesToSummarize
-    .map(msg => `${msg.role === "user" ? "User" : "Character"}: ${msg.content}`)
-    .join("\n");
+/**
+ * Cosine similarity between two TF-IDF Maps.
+ * @param {Map<string,number>} a
+ * @param {Map<string,number>} b
+ * @returns {number} similarity in [0,1]
+ */
+export function cosineSimilarity(a, b) {
+  if (!a.size || !b.size) return 0;
+  let dot = 0, magA = 0, magB = 0;
+  for (const [term, score] of a) {
+    magA += score * score;
+    if (b.has(term)) dot += score * b.get(term);
+  }
+  for (const [, score] of b) magB += score * score;
+  if (magA === 0 || magB === 0) return 0;
+  return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+}
 
-  const prompt = `Write a summary of the following conversation. Include all essential facts and details.
+/**
+ * Retrieve the top-K most relevant memory chunks for the given query.
+ * @param {string} query - Current user message + last AI reply
+ * @param {Array<{text:string, tfidf:Map<string,number>, timestamp:number, summary:string}>} chunks
+ * @param {number} k - Number of chunks to return
+ * @returns {string[]} Array of chunk summary strings, ordered by relevance
+ */
+export function retrieveTopK(query, chunks, k = 3) {
+  if (!chunks || !chunks.length) return [];
+  const queryVec = buildTfIdf(query);
+  const scored = chunks.map(chunk => ({
+    summary: chunk.summary,
+    score: cosineSimilarity(queryVec, chunk.tfidf)
+  }));
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, k).filter(c => c.score > 0).map(c => c.summary);
+}
 
-[Past Summary]
-${currentLedger || "No previous summary."}
+/**
+ * Summarize a block of messages into a compact memory chunk via the LLM.
+ * Unlike the old summarizeToLedger, this does NOT take a cumulative ledger param.
+ * Each chunk is an independent, focused summary of only its message window.
+ * @param {string} apiKey
+ * @param {string} model
+ * @param {Array<{role:string,content:string}>} messages - The block of messages to summarize
+ * @param {string} provider
+ * @param {string} customUrl
+ * @returns {Promise<{summary:string, tfidf:Map<string,number>, timestamp:number}|null>}
+ */
+export async function summarizeChunk(apiKey, model, messages, provider = 'openrouter', customUrl = '') {
+  if (!messages || !messages.length) return null;
+  if (provider !== 'custom' && provider !== 'pollinations' && !apiKey) return null;
 
-[New Conversation]
+  const conversationText = messages
+    .map(msg => `${msg.role === 'user' ? 'User' : 'Character'}: ${msg.content}`)
+    .join('\n');
+
+  const prompt = `Summarize the following roleplay conversation excerpt into 3-5 bullet points.
+Capture: key events, decisions made, new facts revealed, emotional beats, and relationship shifts.
+Be specific and factual. Do NOT editorialize. Use past tense.
+Output only the bullet points, no intro text.
+
+[Conversation]
 ${conversationText}
 
-[New Summary]`;
+[Summary]`;
 
   try {
     const data = await fetchChatCompletionJson({
@@ -359,14 +428,32 @@ ${conversationText}
       model,
       provider,
       customUrl,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.3
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      max_tokens: 300
     });
-    return extractChoiceContent(data).trim() || currentLedger;
+    const summary = extractChoiceContent(data).trim();
+    if (!summary) return null;
+    return {
+      summary,
+      tfidf: buildTfIdf(conversationText + ' ' + summary),
+      timestamp: Date.now()
+    };
   } catch (error) {
-    console.error("Error updating Truth Ledger:", error);
-    return currentLedger; // Fallback to current ledger on error
+    console.error('RAG: chunk summarization failed:', error);
+    return null;
   }
+}
+
+/**
+ * Legacy alias — kept so any import of summarizeToLedger doesn't hard-crash.
+ * Immediately returns the currentLedger unchanged; all callers in app.js are
+ * replaced in this update, so this should never be hit in practice.
+ * @deprecated Use summarizeChunk instead.
+ */
+export async function summarizeToLedger(apiKey, model, currentLedger) {
+  console.warn('summarizeToLedger is deprecated; use summarizeChunk.');
+  return currentLedger;
 }
 
 /**
@@ -375,7 +462,7 @@ ${conversationText}
 /**
  * Synthesis of the system prompt specifically for a group chat room.
  */
-export function synthesizeRoomSystemPrompt(roomName, roomCharacters, activeSpeakerName, truthLedger = "", matchedLore = [], options = {}, persona = null, roomContext = "", isAutoMode = false, roomMuted = []) {
+export function synthesizeRoomSystemPrompt(roomName, roomCharacters, activeSpeakerName, truthLedger = "", matchedLore = [], options = {}, persona = null, roomContext = "", isAutoMode = false, roomMuted = [], retrievedChunks = []) {
   const userName = persona ? (persona.name || 'User') : 'User';
   
   // Compile all biographies
@@ -519,8 +606,8 @@ Roleplay Rules:
     if (cleanPersonaSpeech) prompt += `- Speech Quirks/Style: ${cleanPersonaSpeech}\n`;
   }
 
-  if (truthLedger && truthLedger.trim()) {
-    prompt += `\nSTORY SO FAR (Truth Ledger - absolute facts established in conversation):\n${truthLedger}\n`;
+  if (retrievedChunks && retrievedChunks.length) {
+    prompt += `\nRELEVANT PAST EVENTS (retrieved from long-term memory — treat these as established facts):\n${retrievedChunks.map(c => `- ${c}`).join('\n')}\n`;
   }
 
   const cleanMatchedLore = matchedLore.map(info => replacePlaceholders(info || '', activeSpeakerName, userName));
