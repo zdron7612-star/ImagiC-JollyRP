@@ -333,6 +333,10 @@ class JollyRPApp {
     };
 
     this.showSuggestionChips = localStorage.getItem('jollyrp_enable_suggestion_chips') !== 'false';
+    this.showReasoning = localStorage.getItem('jollyrp_show_reasoning') !== 'false';
+    // reasoningEnabled: whether to actually REQUEST thinking from the model (prompt-level control)
+    // Separate from showReasoning which only controls the display accordion
+    this.reasoningEnabled = localStorage.getItem('jollyrp_reasoning_enabled') !== 'false';
 
     // TTS settings
     try {
@@ -434,6 +438,14 @@ class JollyRPApp {
           if (data.settings.showSuggestionChips !== undefined) {
             this.showSuggestionChips = data.settings.showSuggestionChips;
             localStorage.setItem('jollyrp_enable_suggestion_chips', this.showSuggestionChips ? 'true' : 'false');
+          }
+          if (data.settings.showReasoning !== undefined) {
+            this.showReasoning = data.settings.showReasoning;
+            localStorage.setItem('jollyrp_show_reasoning', this.showReasoning ? 'true' : 'false');
+          }
+          if (data.settings.reasoningEnabled !== undefined) {
+            this.reasoningEnabled = data.settings.reasoningEnabled;
+            localStorage.setItem('jollyrp_reasoning_enabled', this.reasoningEnabled ? 'true' : 'false');
           }
           if (data.settings.generationParams) {
             this.generationParams = { ...this.generationParams, ...data.settings.generationParams };
@@ -564,6 +576,8 @@ class JollyRPApp {
     localStorage.setItem('jollyrp_nsfw_blur', this.nsfwBlur ? 'true' : 'false');
     localStorage.setItem('jollyrp_auto_summarize', this.autoSummarizeEnabled ? 'true' : 'false');
     localStorage.setItem('jollyrp_enable_suggestion_chips', this.showSuggestionChips ? 'true' : 'false');
+    localStorage.setItem('jollyrp_show_reasoning', this.showReasoning ? 'true' : 'false');
+    localStorage.setItem('jollyrp_reasoning_enabled', this.reasoningEnabled ? 'true' : 'false');
     localStorage.setItem('jollyrp_summarize_trigger', this.summarizeTriggerN.toString());
     localStorage.setItem('jollyrp_summarize_keep', this.summarizeKeepN.toString());
     localStorage.setItem('jollyrp_pin_enabled', this.pinEnabled ? 'true' : 'false');
@@ -614,6 +628,8 @@ class JollyRPApp {
             nsfwBlur: this.nsfwBlur,
             autoSummarize: this.autoSummarizeEnabled,
             showSuggestionChips: this.showSuggestionChips,
+            showReasoning: this.showReasoning,
+            reasoningEnabled: this.reasoningEnabled,
             generationParams: this.generationParams,
             verbosity: this.verbosity,
             actionRatio: this.actionRatio,
@@ -1156,6 +1172,38 @@ class JollyRPApp {
               this.generateSuggestedChoices();
             }
           }
+        }
+
+        // Process Show Reasoning toggle (display accordion)
+        const popupParamShowReasoning = document.getElementById('popup-param-show-reasoning');
+        if (popupParamShowReasoning) {
+          this.showReasoning = popupParamShowReasoning.checked;
+          localStorage.setItem('jollyrp_show_reasoning', this.showReasoning ? 'true' : 'false');
+          
+          // Sync setting page toggle state
+          const settingParamShowReasoning = document.getElementById('setting-param-show-reasoning');
+          if (settingParamShowReasoning) {
+            settingParamShowReasoning.checked = this.showReasoning;
+          }
+          
+          // Re-render chat thread to update accordions visibility
+          this.renderChatThread();
+        }
+
+        // Process Enable Reasoning toggle (prompt-level)
+        const popupParamEnableReasoning = document.getElementById('popup-param-enable-reasoning');
+        if (popupParamEnableReasoning) {
+          this.reasoningEnabled = popupParamEnableReasoning.checked;
+          localStorage.setItem('jollyrp_reasoning_enabled', this.reasoningEnabled ? 'true' : 'false');
+
+          // Sync setting page toggle state
+          const settingParamEnableReasoning = document.getElementById('setting-param-enable-reasoning');
+          if (settingParamEnableReasoning) {
+            settingParamEnableReasoning.checked = this.reasoningEnabled;
+          }
+
+          // Update token warning
+          this.updateReasoningTokenWarning();
         }
 
         samplersModal.style.display = 'none';
@@ -2000,6 +2048,17 @@ class JollyRPApp {
         settingParamSuggestionChips.checked = this.showSuggestionChips;
       }
 
+      const settingParamShowReasoning = document.getElementById('setting-param-show-reasoning');
+      if (settingParamShowReasoning) {
+        settingParamShowReasoning.checked = this.showReasoning;
+      }
+
+      const settingParamEnableReasoning = document.getElementById('setting-param-enable-reasoning');
+      if (settingParamEnableReasoning) {
+        settingParamEnableReasoning.checked = this.reasoningEnabled;
+      }
+      this.updateReasoningTokenWarning();
+
       const popupTemp = document.getElementById('popup-param-temp');
       if (popupTemp) {
         popupTemp.value = this.generationParams.temperature;
@@ -2020,6 +2079,16 @@ class JollyRPApp {
         const popupParamSuggestionChips = document.getElementById('popup-param-suggestion-chips');
         if (popupParamSuggestionChips) {
           popupParamSuggestionChips.checked = this.showSuggestionChips;
+        }
+
+        const popupParamShowReasoning = document.getElementById('popup-param-show-reasoning');
+        if (popupParamShowReasoning) {
+          popupParamShowReasoning.checked = this.showReasoning;
+        }
+
+        const popupParamEnableReasoning = document.getElementById('popup-param-enable-reasoning');
+        if (popupParamEnableReasoning) {
+          popupParamEnableReasoning.checked = this.reasoningEnabled;
         }
       }
     }
@@ -2181,6 +2250,9 @@ class JollyRPApp {
       localStorage.setItem('jollyrp_param_top_k', this.generationParams.top_k);
       localStorage.setItem('jollyrp_param_repetition_penalty', this.generationParams.repetition_penalty);
       localStorage.setItem('jollyrp_param_max_tokens', this.generationParams.max_tokens);
+
+      // Update token warning badge whenever max_tokens changes
+      this.updateReasoningTokenWarning();
     }
 
     // Process Suggestion Chips toggle in global settings
@@ -2207,6 +2279,38 @@ class JollyRPApp {
           this.generateSuggestedChoices();
         }
       }
+    }
+
+    // Process Show Reasoning toggle (display accordion) in global settings
+    const settingParamShowReasoning = document.getElementById('setting-param-show-reasoning');
+    if (settingParamShowReasoning) {
+      this.showReasoning = settingParamShowReasoning.checked;
+      localStorage.setItem('jollyrp_show_reasoning', this.showReasoning ? 'true' : 'false');
+
+      // Sync the popup checkbox
+      const popupParamShowReasoning = document.getElementById('popup-param-show-reasoning');
+      if (popupParamShowReasoning) {
+        popupParamShowReasoning.checked = this.showReasoning;
+      }
+      
+      // Re-render chat thread to update accordions visibility
+      this.renderChatThread();
+    }
+
+    // Process Enable Reasoning toggle (prompt-level, controls whether model thinks at all)
+    const settingParamEnableReasoning = document.getElementById('setting-param-enable-reasoning');
+    if (settingParamEnableReasoning) {
+      this.reasoningEnabled = settingParamEnableReasoning.checked;
+      localStorage.setItem('jollyrp_reasoning_enabled', this.reasoningEnabled ? 'true' : 'false');
+
+      // Sync the popup checkbox
+      const popupParamEnableReasoning = document.getElementById('popup-param-enable-reasoning');
+      if (popupParamEnableReasoning) {
+        popupParamEnableReasoning.checked = this.reasoningEnabled;
+      }
+
+      // Update token warning
+      this.updateReasoningTokenWarning();
     }
     
     // Save key to the specific provider
@@ -4731,8 +4835,9 @@ class JollyRPApp {
 
     // Add swipe controls for assistant messages (index > 0)
     let swipeControlsHtml = '';
+    let messageObj = null;
     if (role === 'assistant' && index > 0 && activeChat) {
-      const messageObj = activeChat.messages.find(m => m.id === identifier) || activeChat.messages[index];
+      messageObj = activeChat.messages.find(m => m.id === identifier) || activeChat.messages[index];
       if (messageObj) {
         if (!messageObj.swipes) {
           messageObj.swipes = [messageObj.content];
@@ -4764,6 +4869,37 @@ class JollyRPApp {
       }
     }
 
+    let thoughtAccordionHtml = '';
+    if (role === 'assistant' && index > 0) {
+      const reasoningText = messageObj ? (messageObj.reasoning || '') : '';
+      const hasReasoning = !!reasoningText.trim();
+      const displayStyle = (this.showReasoning && hasReasoning) ? '' : 'display: none;';
+      thoughtAccordionHtml = `
+        <div class="msg-thought-accordion collapsed" style="${displayStyle}">
+          <button class="msg-thought-header">
+            <span class="msg-thought-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="brain-svg">
+                <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+                <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+                <path d="M12 5v14"/>
+                <path d="M12 12h6"/>
+                <path d="M12 12H6"/>
+              </svg>
+            </span>
+            <span class="msg-thought-title">Thinking Process</span>
+            <span class="msg-thought-chevron">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="chevron-svg">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </span>
+          </button>
+          <div class="msg-thought-content-wrapper">
+            <div class="msg-thought-content">${escapeHTML(reasoningText)}</div>
+          </div>
+        </div>
+      `;
+    }
+
     bubble.innerHTML = `
       <div class="avatar-container">
         <img class="msg-avatar ${emotion !== 'default' ? 'mood-' + emotion : ''}" src="${activeAvatarUrl}" alt="${name}">
@@ -4777,10 +4913,22 @@ class JollyRPApp {
             ${deleteBtnHtml}
           </div>
         </div>
+        ${thoughtAccordionHtml}
         <div class="msg-content">${formattedContent}</div>
         ${swipeControlsHtml}
       </div>
     `;
+
+    const accordion = bubble.querySelector('.msg-thought-accordion');
+    if (accordion) {
+      const header = accordion.querySelector('.msg-thought-header');
+      if (header) {
+        header.addEventListener('click', (e) => {
+          e.stopPropagation();
+          accordion.classList.toggle('collapsed');
+        });
+      }
+    }
 
     // Message actions are now handled fully in CSS with hardware acceleration.
     const deleteBtn = bubble.querySelector('.msg-delete-btn');
@@ -4998,7 +5146,7 @@ class JollyRPApp {
   }
 
   changeSwipe(msgId, direction) {
-    const session = this.getActiveSession();
+    const session = this.isRoomActive() ? this.getRoomSession() : this.getActiveSession();
     if (!session) return;
 
     // Find the message index
@@ -5021,6 +5169,15 @@ class JollyRPApp {
     }
 
     messageObj.content = messageObj.swipes[messageObj.swipeId];
+
+    if (!messageObj.swipeReasonings) {
+      messageObj.swipeReasonings = [];
+    }
+    while (messageObj.swipeReasonings.length < messageObj.swipes.length) {
+      messageObj.swipeReasonings.push('');
+    }
+    messageObj.reasoning = messageObj.swipeReasonings[messageObj.swipeId] || '';
+
     this.saveSessions();
     this.renderChatThread();
   }
@@ -5088,11 +5245,19 @@ class JollyRPApp {
     if (!targetMsg.swipes) {
       targetMsg.swipes = [targetMsg.content];
     }
+    if (!targetMsg.swipeReasonings) {
+      targetMsg.swipeReasonings = [];
+      while (targetMsg.swipeReasonings.length < targetMsg.swipes.length) {
+        targetMsg.swipeReasonings.push(targetMsg.reasoning || '');
+      }
+    }
 
     // Append a loading swipe and set it active
     targetMsg.swipes.push('...');
+    targetMsg.swipeReasonings.push('');
     targetMsg.swipeId = targetMsg.swipes.length - 1;
     targetMsg.content = '...';
+    targetMsg.reasoning = '';
 
     // Persist loading state, then re-render so the spinner appears in the bubble
     this.saveSessions(true); // skipRenderMyChats — we only need the thread updated
@@ -5101,10 +5266,15 @@ class JollyRPApp {
     // Query bubble AFTER renderChatThread so the reference is fresh
     const bubble = this.elements.chatThread.querySelector(`[data-msg-id="${msgId}"]`);
     const textNode = bubble ? bubble.querySelector('.msg-content') : null;
+    const accordion = bubble ? bubble.querySelector('.msg-thought-accordion') : null;
+    const accordionContent = accordion ? accordion.querySelector('.msg-thought-content') : null;
 
     this.activeStreamController = new AbortController();
     this.setGeneratingState(true);
     let assistantResponse = '';
+    let assistantReasoning = '';
+    let hasShownAccordion = false;
+    let accordionAutoCollapsed = false;
 
     this.executeChatWithFallbacks({
       apiKey: this.apiKey,
@@ -5114,34 +5284,54 @@ class JollyRPApp {
       signal: this.activeStreamController.signal,
       provider: this.apiProvider,
       customUrl: this.customApiUrl,
+      enableReasoning: this.reasoningEnabled,
       extraParams: {
         top_p: this.generationParams.top_p,
         top_k: this.generationParams.top_k,
         repetition_penalty: this.generationParams.repetition_penalty,
         max_tokens: this.generationParams.max_tokens
       },
-      onChunk: (chunk) => {
-        if (assistantResponse === '') {
-          if (textNode) textNode.innerHTML = '';
+      onChunk: (chunk, reasoningChunk) => {
+        if (reasoningChunk) {
+          assistantReasoning += reasoningChunk;
+          if (this.showReasoning && accordion && accordionContent) {
+            if (!hasShownAccordion) {
+              accordion.style.display = '';
+              accordion.classList.remove('collapsed');
+              hasShownAccordion = true;
+            }
+            accordionContent.textContent = assistantReasoning;
+          }
         }
-        assistantResponse += chunk;
-        const cleaned = this.replacePlaceholders(assistantResponse, char.name, activePersona.name || 'User');
-        if (textNode) textNode.innerHTML = this.formatAssistantText(cleaned);
+        if (chunk) {
+          if (assistantResponse === '') {
+            if (textNode) textNode.innerHTML = '';
+            if (accordion && !accordionAutoCollapsed) {
+              accordion.classList.add('collapsed');
+              accordionAutoCollapsed = true;
+            }
+          }
+          assistantResponse += chunk;
+          const cleaned = this.replacePlaceholders(assistantResponse, char.name, activePersona.name || 'User');
+          if (textNode) textNode.innerHTML = this.formatAssistantText(cleaned);
+        }
         this.scrollToBottom();
       },
-      onFinish: async (fullText) => {
+      onFinish: async (fullText, fullReasoning) => {
         this.setGeneratingState(false);
         this.activeStreamController = null;
 
         const cleanedFullText = this.replacePlaceholders(fullText, char.name, activePersona.name || 'User');
         targetMsg.swipes[targetMsg.swipeId] = cleanedFullText;
         targetMsg.content = cleanedFullText;
+        targetMsg.swipeReasonings[targetMsg.swipeId] = fullReasoning || '';
+        targetMsg.reasoning = fullReasoning || '';
 
-        // Update swipe indicator in the existing bubble if still present — avoids full re-render
+        // Update swipe indicator and accordion in the existing bubble if still present — avoids full re-render
         const existingBubble = this.elements.chatThread.querySelector(`[data-msg-id="${msgId}"]`);
         if (existingBubble) {
           const tc = existingBubble.querySelector('.msg-content');
-          if (tc) tc.innerHTML = this.formatAssistantText(this.replacePlaceholders(fullText, char.name, activePersona.name || 'User'));
+          if (tc) tc.innerHTML = this.formatAssistantText(cleanedFullText);
           const indicator = existingBubble.querySelector('.msg-swipe-indicator');
           if (indicator) indicator.textContent = `${targetMsg.swipeId + 1} / ${targetMsg.swipes.length}`;
           // Update prev/next button states
@@ -5149,6 +5339,15 @@ class JollyRPApp {
           const nextBtn = existingBubble.querySelector('.swipe-btn.next');
           if (prevBtn) { prevBtn.disabled = targetMsg.swipeId === 0; prevBtn.style.opacity = targetMsg.swipeId === 0 ? '0.3' : '0.75'; prevBtn.style.cursor = targetMsg.swipeId === 0 ? 'not-allowed' : 'pointer'; }
           if (nextBtn) { const atEnd = targetMsg.swipeId === targetMsg.swipes.length - 1; nextBtn.disabled = atEnd; nextBtn.style.opacity = atEnd ? '0.3' : '0.75'; nextBtn.style.cursor = atEnd ? 'not-allowed' : 'pointer'; }
+          
+          // Update accordion content in DOM
+          const existingAccordion = existingBubble.querySelector('.msg-thought-accordion');
+          const existingAccordionContent = existingAccordion ? existingAccordion.querySelector('.msg-thought-content') : null;
+          if (existingAccordion && existingAccordionContent) {
+            existingAccordionContent.textContent = fullReasoning || '';
+            const hasReasoning = !!(fullReasoning || '').trim();
+            existingAccordion.style.display = (this.showReasoning && hasReasoning) ? '' : 'none';
+          }
         } else {
           // Bubble was scrolled out of view / removed — fall back to full re-render
           this.renderChatThread();
@@ -5164,8 +5363,10 @@ class JollyRPApp {
         // Roll back the loading swipe
         if (targetMsg.swipes[targetMsg.swipeId] === '...') {
           targetMsg.swipes.pop();
+          targetMsg.swipeReasonings.pop();
           targetMsg.swipeId = targetMsg.swipes.length - 1;
           targetMsg.content = targetMsg.swipes[targetMsg.swipeId] || '';
+          targetMsg.reasoning = targetMsg.swipeReasonings[targetMsg.swipeId] || '';
           this.saveSessions(true);
         }
         if (err.name === 'AbortError' || err.message.toLowerCase().includes('abort')) {
@@ -5211,12 +5412,12 @@ class JollyRPApp {
         ...options,
         apiKey: currentApiKey,
         customUrl: currentUrl,
-        onChunk: (chunk) => {
+        onChunk: (chunk, reasoningChunk) => {
           startedStreaming = true;
-          if (options.onChunk) options.onChunk(chunk);
+          if (options.onChunk) options.onChunk(chunk, reasoningChunk);
         },
-        onFinish: (fullText) => {
-          if (options.onFinish) options.onFinish(fullText);
+        onFinish: (fullText, fullReasoning) => {
+          if (options.onFinish) options.onFinish(fullText, fullReasoning);
         },
         onError: (err) => {
           if (!startedStreaming && err.message) {
@@ -6178,7 +6379,13 @@ ${nsfwInstructions}
 
     this.activeStreamController = new AbortController();
     
+    const accordion = bubble.querySelector('.msg-thought-accordion');
+    const accordionContent = accordion ? accordion.querySelector('.msg-thought-content') : null;
+
     let assistantResponse = "";
+    let assistantReasoning = "";
+    let hasShownAccordion = false;
+    let accordionAutoCollapsed = false;
     let firstChunkReceived = false;
     
     // 30-second timeout: if no chunks arrive, show a timeout indicator
@@ -6210,25 +6417,43 @@ ${nsfwInstructions}
       signal: this.activeStreamController.signal,
       provider: this.apiProvider,
       customUrl: this.customApiUrl,
+      enableReasoning: this.reasoningEnabled,
       extraParams: {
         top_p: this.generationParams.top_p,
         top_k: this.generationParams.top_k,
         repetition_penalty: this.generationParams.repetition_penalty,
         max_tokens: this.generationParams.max_tokens
       },
-      onChunk: (chunk) => {
-        if (!firstChunkReceived) {
-          firstChunkReceived = true;
-          clearTimeout(streamTimeoutId);
-          textNode.innerHTML = "";
+      onChunk: (chunk, reasoningChunk) => {
+        if (reasoningChunk) {
+          assistantReasoning += reasoningChunk;
+          if (this.showReasoning && accordion && accordionContent) {
+            if (!hasShownAccordion) {
+              accordion.style.display = '';
+              accordion.classList.remove('collapsed');
+              hasShownAccordion = true;
+            }
+            accordionContent.textContent = assistantReasoning;
+          }
         }
-        assistantResponse += chunk;
-        const cleaned = this.replacePlaceholders(assistantResponse, char.name, activePersona.name || 'User');
-        const formatted = this.formatAssistantText(cleaned);
-        textNode.innerHTML = formatted;
+        if (chunk) {
+          if (!firstChunkReceived) {
+            firstChunkReceived = true;
+            clearTimeout(streamTimeoutId);
+            textNode.innerHTML = "";
+            if (accordion && !accordionAutoCollapsed) {
+              accordion.classList.add('collapsed');
+              accordionAutoCollapsed = true;
+            }
+          }
+          assistantResponse += chunk;
+          const cleaned = this.replacePlaceholders(assistantResponse, char.name, activePersona.name || 'User');
+          const formatted = this.formatAssistantText(cleaned);
+          textNode.innerHTML = formatted;
+        }
         this.scrollToBottom();
       },
-      onFinish: async (fullText) => {
+      onFinish: async (fullText, fullReasoning) => {
         clearTimeout(streamTimeoutId);
         this.setGeneratingState(false);
         this.activeStreamController = null;
@@ -6239,9 +6464,22 @@ ${nsfwInstructions}
           content: cleanedFullText,
           id: assistantMsgId,
           swipes: [cleanedFullText],
-          swipeId: 0
+          swipeId: 0,
+          reasoning: fullReasoning || '',
+          swipeReasonings: [fullReasoning || '']
         });
-        // 5. RAG Memory: chunk-and-store background summarization
+
+        // Update accordion content in DOM if still present
+        const existingBubble = this.elements.chatThread.querySelector(`[data-msg-id="${assistantMsgId}"]`);
+        if (existingBubble) {
+          const existingAccordion = existingBubble.querySelector('.msg-thought-accordion');
+          const existingAccordionContent = existingAccordion ? existingAccordion.querySelector('.msg-thought-content') : null;
+          if (existingAccordion && existingAccordionContent) {
+            existingAccordionContent.textContent = fullReasoning || '';
+            const hasReasoning = !!(fullReasoning || '').trim();
+            existingAccordion.style.display = (this.showReasoning && hasReasoning) ? '' : 'none';
+          }
+        }
         if (this.autoSummarizeEnabled) {
           const CHUNK_SIZE = 10; // messages per chunk (user+assistant pairs = 5 turns)
           const KEEP_N = 6;      // keep this many recent messages out of the chunk window
@@ -6363,7 +6601,9 @@ ${nsfwInstructions}
             content: assistantResponse,
             id: assistantMsgId,
             swipes: [assistantResponse],
-            swipeId: 0
+            swipeId: 0,
+            reasoning: assistantReasoning || '',
+            swipeReasonings: [assistantReasoning || '']
           });
           this.saveSessions();
           this.renderChatThread();
@@ -7898,6 +8138,7 @@ WRITING RULES:
       temperature: 0.95,   // High creativity for the opening scene
       provider: this.apiProvider,
       customUrl: this.customApiUrl,
+      enableReasoning: this.reasoningEnabled,
       extraParams: {
         top_p: 0.97,
         max_tokens: Math.min(this.generationParams.max_tokens * 2, 1600)
@@ -8329,16 +8570,20 @@ WRITING RULES:
       session.authorsNote || '',
       session.authorsNoteDepth || 3
     );
-
     const assistantMsgId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const bubble = this.appendMessageToDom('assistant', '...', session.messages.length, assistantMsgId);
     const textNode = bubble ? bubble.querySelector('.msg-content') : null;
+    const accordion = bubble ? bubble.querySelector('.msg-thought-accordion') : null;
+    const accordionContent = accordion ? accordion.querySelector('.msg-thought-content') : null;
 
     this.activeStreamController = new AbortController();
     this.setGeneratingState(true);
     if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = true;
 
     let assistantResponse = "";
+    let assistantReasoning = "";
+    let hasShownAccordion = false;
+    let accordionAutoCollapsed = false;
 
     this.executeChatWithFallbacks({
       apiKey: this.apiKey,
@@ -8354,15 +8599,33 @@ WRITING RULES:
         repetition_penalty: this.generationParams.repetition_penalty,
         max_tokens: this.generationParams.max_tokens
       },
-      onChunk: chunk => {
-        if (assistantResponse === '') {
-          if (textNode) textNode.innerHTML = '';
+      onChunk: (chunk, reasoningChunk) => {
+        if (reasoningChunk) {
+          assistantReasoning += reasoningChunk;
+          if (this.showReasoning && accordion && accordionContent) {
+            if (!hasShownAccordion) {
+              accordion.style.display = '';
+              accordion.classList.remove('collapsed');
+              hasShownAccordion = true;
+            }
+            accordionContent.textContent = assistantReasoning;
+          }
         }
-        assistantResponse += chunk;
-        if (textNode) textNode.innerHTML = this.formatAssistantText(assistantResponse);
+        if (chunk) {
+          if (assistantResponse === '') {
+            if (textNode) textNode.innerHTML = '';
+            if (accordion && !accordionAutoCollapsed) {
+              accordion.classList.add('collapsed');
+              accordionAutoCollapsed = true;
+            }
+          }
+          assistantResponse += chunk;
+          const cleaned = this.replacePlaceholders(assistantResponse, char.name, activePersona.name || 'User');
+          if (textNode) textNode.innerHTML = this.formatAssistantText(cleaned);
+        }
         this.scrollToBottom();
       },
-      onFinish: async fullText => {
+      onFinish: async (fullText, fullReasoning) => {
         this.setGeneratingState(false);
         if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = false;
         this.activeStreamController = null;
@@ -8373,8 +8636,22 @@ WRITING RULES:
           content: cleanedFullText,
           id: assistantMsgId,
           swipes: [cleanedFullText],
-          swipeId: 0
+          swipeId: 0,
+          reasoning: fullReasoning || '',
+          swipeReasonings: [fullReasoning || '']
         });
+
+        // Update accordion content in DOM if still present
+        const existingBubble = this.elements.chatThread.querySelector(`[data-msg-id="${assistantMsgId}"]`);
+        if (existingBubble) {
+          const existingAccordion = existingBubble.querySelector('.msg-thought-accordion');
+          const existingAccordionContent = existingAccordion ? existingAccordion.querySelector('.msg-thought-content') : null;
+          if (existingAccordion && existingAccordionContent) {
+            existingAccordionContent.textContent = fullReasoning || '';
+            const hasReasoning = !!(fullReasoning || '').trim();
+            existingAccordion.style.display = (this.showReasoning && hasReasoning) ? '' : 'none';
+          }
+        }
 
         this.saveSessions();
         this.renderChatThread();
@@ -8392,7 +8669,9 @@ WRITING RULES:
             content: cleaned,
             id: assistantMsgId,
             swipes: [cleaned],
-            swipeId: 0
+            swipeId: 0,
+            reasoning: assistantReasoning || '',
+            swipeReasonings: [assistantReasoning || '']
           });
           this.saveSessions();
           this.renderChatThread();
@@ -8512,11 +8791,16 @@ WRITING RULES:
     const assistantMsgId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const bubble = this.appendRoomMessageToDom('assistant', '...', chat.messages.length, assistantMsgId, activeSpeakerChar);
     const textNode = bubble ? bubble.querySelector('.msg-content') : null;
+    const accordion = bubble ? bubble.querySelector('.msg-thought-accordion') : null;
+    const accordionContent = accordion ? accordion.querySelector('.msg-thought-content') : null;
 
     this.setGeneratingState(true);
     if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = true;
     this.activeStreamController = new AbortController();
     let assistantResponse = '';
+    let assistantReasoning = '';
+    let hasShownAccordion = false;
+    let accordionAutoCollapsed = false;
 
     this.executeChatWithFallbacks({
       apiKey: this.apiKey,
@@ -8526,36 +8810,54 @@ WRITING RULES:
       signal: this.activeStreamController.signal,
       provider: this.apiProvider,
       customUrl: this.customApiUrl,
+      enableReasoning: this.reasoningEnabled,
       extraParams: {
         top_p: this.generationParams.top_p,
         top_k: this.generationParams.top_k,
         repetition_penalty: this.generationParams.repetition_penalty,
         max_tokens: this.generationParams.max_tokens
       },
-      onChunk: chunk => {
-        if (assistantResponse === '') {
-          if (textNode) textNode.innerHTML = '';
-        }
-        assistantResponse += chunk;
-
-        const parsedSpeaker = this.parseRoomSpeaker(assistantResponse, chars);
-        if (parsedSpeaker) {
-          const imgEl = bubble.querySelector('.msg-avatar');
-          const nameEl = bubble.querySelector('.msg-sender-name');
-          if (nameEl && nameEl.textContent !== parsedSpeaker.name) {
-            nameEl.textContent = parsedSpeaker.name;
-          }
-          if (imgEl && imgEl.src !== parsedSpeaker.avatar) {
-            imgEl.src = parsedSpeaker.avatar;
-            imgEl.alt = parsedSpeaker.name;
+      onChunk: (chunk, reasoningChunk) => {
+        if (reasoningChunk) {
+          assistantReasoning += reasoningChunk;
+          if (this.showReasoning && accordion && accordionContent) {
+            if (!hasShownAccordion) {
+              accordion.style.display = '';
+              accordion.classList.remove('collapsed');
+              hasShownAccordion = true;
+            }
+            accordionContent.textContent = assistantReasoning;
           }
         }
+        if (chunk) {
+          if (assistantResponse === '') {
+            if (textNode) textNode.innerHTML = '';
+            if (accordion && !accordionAutoCollapsed) {
+              accordion.classList.add('collapsed');
+              accordionAutoCollapsed = true;
+            }
+          }
+          assistantResponse += chunk;
 
-        const formatted = this.formatAssistantText(this.stripRoomPrefix(assistantResponse));
-        if (textNode) textNode.innerHTML = formatted;
+          const parsedSpeaker = this.parseRoomSpeaker(assistantResponse, chars);
+          if (parsedSpeaker) {
+            const imgEl = bubble.querySelector('.msg-avatar');
+            const nameEl = bubble.querySelector('.msg-sender-name');
+            if (nameEl && nameEl.textContent !== parsedSpeaker.name) {
+              nameEl.textContent = parsedSpeaker.name;
+            }
+            if (imgEl && imgEl.src !== parsedSpeaker.avatar) {
+              imgEl.src = parsedSpeaker.avatar;
+              imgEl.alt = parsedSpeaker.name;
+            }
+          }
+
+          const formatted = this.formatAssistantText(this.stripRoomPrefix(assistantResponse));
+          if (textNode) textNode.innerHTML = formatted;
+        }
         this.scrollToBottom();
       },
-      onFinish: async fullText => {
+      onFinish: async (fullText, fullReasoning) => {
         this.setGeneratingState(false);
         if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = false;
         this.activeStreamController = null;
@@ -8573,11 +8875,25 @@ WRITING RULES:
           id: assistantMsgId,
           swipes: [cleanedFullText],
           swipeId: 0,
-          roomSpeakerId: speakerChar.id
+          roomSpeakerId: speakerChar.id,
+          reasoning: fullReasoning || '',
+          swipeReasonings: [fullReasoning || '']
         });
 
         // Set the active speaker in the chat session so they are highlighted
         chat.roomActiveSpeaker = speakerChar.id;
+
+        // Update accordion content in DOM if still present
+        const existingBubble = this.elements.chatThread.querySelector(`[data-msg-id="${assistantMsgId}"]`);
+        if (existingBubble) {
+          const existingAccordion = existingBubble.querySelector('.msg-thought-accordion');
+          const existingAccordionContent = existingAccordion ? existingAccordion.querySelector('.msg-thought-content') : null;
+          if (existingAccordion && existingAccordionContent) {
+            existingAccordionContent.textContent = fullReasoning || '';
+            const hasReasoning = !!(fullReasoning || '').trim();
+            existingAccordion.style.display = (this.showReasoning && hasReasoning) ? '' : 'none';
+          }
+        }
 
         this.saveSessions();
         this.renderSpeakerStrip(chat);
@@ -8631,7 +8947,9 @@ WRITING RULES:
             id: assistantMsgId,
             swipes: [cleaned],
             swipeId: 0,
-            roomSpeakerId: speakerChar.id
+            roomSpeakerId: speakerChar.id,
+            reasoning: assistantReasoning || '',
+            swipeReasonings: [assistantReasoning || '']
           });
           chat.roomActiveSpeaker = speakerChar.id;
           this.saveSessions();
@@ -8789,8 +9107,9 @@ WRITING RULES:
     `;
 
     let swipeControlsHtml = '';
+    let messageObj = null;
     if (role === 'assistant' && index > 0 && chat) {
-      const messageObj = chat.messages.find(m => m.id === msgId) || chat.messages[index];
+      messageObj = chat.messages.find(m => m.id === msgId) || chat.messages[index];
       if (messageObj) {
         if (!messageObj.swipes) {
           messageObj.swipes = [messageObj.content];
@@ -8822,6 +9141,37 @@ WRITING RULES:
       }
     }
 
+    let thoughtAccordionHtml = '';
+    if (role === 'assistant' && index > 0) {
+      const reasoningText = messageObj ? (messageObj.reasoning || '') : '';
+      const hasReasoning = !!reasoningText.trim();
+      const displayStyle = (this.showReasoning && hasReasoning) ? '' : 'display: none;';
+      thoughtAccordionHtml = `
+        <div class="msg-thought-accordion collapsed" style="${displayStyle}">
+          <button class="msg-thought-header">
+            <span class="msg-thought-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="brain-svg">
+                <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+                <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+                <path d="M12 5v14"/>
+                <path d="M12 12h6"/>
+                <path d="M12 12H6"/>
+              </svg>
+            </span>
+            <span class="msg-thought-title">Thinking Process</span>
+            <span class="msg-thought-chevron">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="chevron-svg">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </span>
+          </button>
+          <div class="msg-thought-content-wrapper">
+            <div class="msg-thought-content">${escapeHTML(reasoningText)}</div>
+          </div>
+        </div>
+      `;
+    }
+
     bubble.innerHTML = `
       ${avatarHtml}
       <div class="msg-content-wrapper" style="position:relative;flex:1;min-width:0;">
@@ -8833,10 +9183,22 @@ WRITING RULES:
             ${deleteBtnHtml}
           </div>
         </div>
+        ${thoughtAccordionHtml}
         <div class="msg-content">${formattedContent}</div>
         ${swipeControlsHtml}
       </div>
     `;
+
+    const accordion = bubble.querySelector('.msg-thought-accordion');
+    if (accordion) {
+      const header = accordion.querySelector('.msg-thought-header');
+      if (header) {
+        header.addEventListener('click', (e) => {
+          e.stopPropagation();
+          accordion.classList.toggle('collapsed');
+        });
+      }
+    }
 
     // Message actions are now handled fully in CSS with hardware acceleration.
     const deleteBtn = bubble.querySelector('.msg-delete-btn');
@@ -9001,9 +9363,19 @@ WRITING RULES:
     if (!targetMsg.swipes) {
       targetMsg.swipes = [targetMsg.content];
     }
+    if (!targetMsg.swipeReasonings) {
+      targetMsg.swipeReasonings = [];
+      while (targetMsg.swipeReasonings.length < targetMsg.swipes.length) {
+        targetMsg.swipeReasonings.push(targetMsg.reasoning || '');
+      }
+    }
+
+    // Append a loading swipe and set it active
     targetMsg.swipes.push('...');
+    targetMsg.swipeReasonings.push('');
     targetMsg.swipeId = targetMsg.swipes.length - 1;
     targetMsg.content = '...';
+    targetMsg.reasoning = '';
 
     this.saveSessions();
     this.renderChatThread();
@@ -9011,11 +9383,16 @@ WRITING RULES:
     // Query the DOM bubble for the regenerating message AFTER renderChatThread
     const existingBubble = this.elements.chatThread.querySelector(`[data-msg-id="${msgId}"]`);
     const textNode = existingBubble ? existingBubble.querySelector('.msg-content') : null;
+    const accordion = existingBubble ? existingBubble.querySelector('.msg-thought-accordion') : null;
+    const accordionContent = accordion ? accordion.querySelector('.msg-thought-content') : null;
 
     this.setGeneratingState(true);
     if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = true;
     this.activeStreamController = new AbortController();
     let newResponse = '';
+    let assistantReasoning = '';
+    let hasShownAccordion = false;
+    let accordionAutoCollapsed = false;
 
     this.executeChatWithFallbacks({
       apiKey: this.apiKey,
@@ -9025,35 +9402,55 @@ WRITING RULES:
       signal: this.activeStreamController.signal,
       provider: this.apiProvider,
       customUrl: this.customApiUrl,
+      enableReasoning: this.reasoningEnabled,
       extraParams: {
         top_p: this.generationParams.top_p,
         top_k: this.generationParams.top_k,
         repetition_penalty: this.generationParams.repetition_penalty,
         max_tokens: this.generationParams.max_tokens
       },
-      onChunk: chunk => {
-        if (newResponse === '' && textNode) textNode.innerHTML = '';
-        newResponse += chunk;
-
-        if (existingBubble) {
-          const parsedSpeaker = this.parseRoomSpeaker(newResponse, chars);
-          if (parsedSpeaker) {
-            const imgEl = existingBubble.querySelector('.msg-avatar');
-            const nameEl = existingBubble.querySelector('.msg-sender-name');
-            if (nameEl && nameEl.textContent !== parsedSpeaker.name) {
-              nameEl.textContent = parsedSpeaker.name;
+      onChunk: (chunk, reasoningChunk) => {
+        if (reasoningChunk) {
+          assistantReasoning += reasoningChunk;
+          if (this.showReasoning && accordion && accordionContent) {
+            if (!hasShownAccordion) {
+              accordion.style.display = '';
+              accordion.classList.remove('collapsed');
+              hasShownAccordion = true;
             }
-            if (imgEl && imgEl.src !== parsedSpeaker.avatar) {
-              imgEl.src = parsedSpeaker.avatar;
-              imgEl.alt = parsedSpeaker.name;
-            }
+            accordionContent.textContent = assistantReasoning;
           }
         }
+        if (chunk) {
+          if (newResponse === '') {
+            if (textNode) textNode.innerHTML = '';
+            if (accordion && !accordionAutoCollapsed) {
+              accordion.classList.add('collapsed');
+              accordionAutoCollapsed = true;
+            }
+          }
+          newResponse += chunk;
 
-        if (textNode) textNode.innerHTML = this.formatAssistantText(this.stripRoomPrefix(newResponse));
+          if (existingBubble) {
+            const parsedSpeaker = this.parseRoomSpeaker(newResponse, chars);
+            if (parsedSpeaker) {
+              const imgEl = existingBubble.querySelector('.msg-avatar');
+              const nameEl = existingBubble.querySelector('.msg-sender-name');
+              if (nameEl && nameEl.textContent !== parsedSpeaker.name) {
+                nameEl.textContent = parsedSpeaker.name;
+              }
+              if (imgEl && imgEl.src !== parsedSpeaker.avatar) {
+                imgEl.src = parsedSpeaker.avatar;
+                imgEl.alt = parsedSpeaker.name;
+              }
+            }
+          }
+
+          if (textNode) textNode.innerHTML = this.formatAssistantText(this.stripRoomPrefix(newResponse));
+        }
         this.scrollToBottom();
       },
-      onFinish: async fullText => {
+      onFinish: async (fullText, fullReasoning) => {
         this.setGeneratingState(false);
         if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = false;
         this.activeStreamController = null;
@@ -9066,12 +9463,25 @@ WRITING RULES:
 
         const cleaned = this.replacePlaceholders(fullText, finalSpeakerChar.name, activePersona ? activePersona.name : 'User');
         
-        chat.messages[msgIndex].swipes[chat.messages[msgIndex].swipeId] = cleaned;
-        chat.messages[msgIndex].content = cleaned;
-        chat.messages[msgIndex].roomSpeakerId = finalSpeakerChar.id;
+        targetMsg.swipes[targetMsg.swipeId] = cleaned;
+        targetMsg.content = cleaned;
+        targetMsg.roomSpeakerId = finalSpeakerChar.id;
+        targetMsg.swipeReasonings[targetMsg.swipeId] = fullReasoning || '';
+        targetMsg.reasoning = fullReasoning || '';
 
         // Set the active speaker in the chat session so they are highlighted
         chat.roomActiveSpeaker = finalSpeakerChar.id;
+
+        // Update accordion content in DOM if still present
+        if (existingBubble) {
+          const existingAccordion = existingBubble.querySelector('.msg-thought-accordion');
+          const existingAccordionContent = existingAccordion ? existingAccordion.querySelector('.msg-thought-content') : null;
+          if (existingAccordion && existingAccordionContent) {
+            existingAccordionContent.textContent = fullReasoning || '';
+            const hasReasoning = !!(fullReasoning || '').trim();
+            existingAccordion.style.display = (this.showReasoning && hasReasoning) ? '' : 'none';
+          }
+        }
 
         this.saveSessions();
         this.renderSpeakerStrip(chat);
@@ -9088,14 +9498,16 @@ WRITING RULES:
         this.setGeneratingState(false);
         if (this.elements.btnTriggerNext) this.elements.btnTriggerNext.disabled = false;
         this.activeStreamController = null;
-        if (chat.messages[msgIndex].swipes[chat.messages[msgIndex].swipeId] === '...') {
-          chat.messages[msgIndex].swipes.pop();
-          chat.messages[msgIndex].swipeId = chat.messages[msgIndex].swipes.length - 1;
-          chat.messages[msgIndex].content = chat.messages[msgIndex].swipes[chat.messages[msgIndex].swipeId] || '';
+        if (targetMsg.swipes[targetMsg.swipeId] === '...') {
+          targetMsg.swipes.pop();
+          targetMsg.swipeReasonings.pop();
+          targetMsg.swipeId = targetMsg.swipes.length - 1;
+          targetMsg.content = targetMsg.swipes[targetMsg.swipeId] || '';
+          targetMsg.reasoning = targetMsg.swipeReasonings[targetMsg.swipeId] || '';
           this.saveSessions(true);
         }
         if (err.name === 'AbortError' || err.message.toLowerCase().includes('abort')) {
-          if (textNode) textNode.innerHTML = this.formatAssistantText(this.stripRoomPrefix(chat.messages[msgIndex].content));
+          if (textNode) textNode.innerHTML = this.formatAssistantText(this.stripRoomPrefix(targetMsg.content));
         } else {
           if (textNode) textNode.innerHTML = `<span style="color:var(--accent-crimson);">[Error: ${err.message}]</span>`;
         }
@@ -9358,6 +9770,18 @@ WRITING RULES:
     }
   }
 
+  // --- Reasoning Token Warning ---
+  updateReasoningTokenWarning() {
+    const showWarning = this.reasoningEnabled && this.generationParams.max_tokens < 1024;
+    // Update both the settings modal and popup warnings
+    ['reasoning-token-warning', 'popup-reasoning-token-warning'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.display = showWarning ? 'flex' : 'none';
+      }
+    });
+  }
+
   // --- Contextual Choice Engine ---
   async generateSuggestedChoices() {
     const container = document.getElementById('choice-chips-container');
@@ -9371,14 +9795,38 @@ WRITING RULES:
     
     const session = this.isRoomActive() ? this.getRoomSession() : this.getActiveSession();
     if (!session || !session.messages || session.messages.length === 0) return;
-    
+
+    // Resolve the active persona — this is WHO the user is in this roleplay.
+    // We must tell the model this explicitly so it generates chips from the correct
+    // perspective (gender, personality, etc.), regardless of what other characters in
+    // the scenario are doing.
+    const activePersonaId = session.personaId || 'persona_default';
+    const activePersona = this.getActivePersona(activePersonaId);
+    const userName = activePersona ? (activePersona.name || 'User') : 'User';
+
+    // Build a persona context block from every field the user has filled in.
+    // Only include fields that actually have content to keep the prompt concise.
+    const personaLines = [];
+    if (activePersona) {
+      personaLines.push(`Name: ${userName}`);
+      if (activePersona.description && activePersona.description.trim()) {
+        personaLines.push(`Background/Description: ${activePersona.description.trim()}`);
+      }
+      if (activePersona.personality && activePersona.personality.trim()) {
+        personaLines.push(`Personality: ${activePersona.personality.trim()}`);
+      }
+      if (activePersona.speechQuirks && activePersona.speechQuirks.trim()) {
+        personaLines.push(`Speech Style: ${activePersona.speechQuirks.trim()}`);
+      }
+    }
+    const personaBlock = personaLines.length > 0
+      ? `\n\nUSER PERSONA (you are generating choices FOR this person — always write from their perspective):\n${personaLines.join('\n')}`
+      : '';
+
     const recentMessages = session.messages.slice(-5);
     const historyText = recentMessages.map(m => {
       if (m.role === 'user') {
-        const activePersonaId = session.personaId || 'persona_default';
-        const activePersona = this.getActivePersona(activePersonaId);
-        const uName = activePersona ? (activePersona.name || 'User') : 'User';
-        return `[${uName}]: ${m.content}`;
+        return `[${userName}]: ${m.content}`;
       } else {
         const cleanContent = m.content || '';
         if (cleanContent.startsWith('[') && cleanContent.includes(']:')) {
@@ -9389,13 +9837,19 @@ WRITING RULES:
       }
     }).join('\n');
     
-    const systemPrompt = `You are a creative roleplay story assistant.
-Analyze the following recent conversation history and generate 3 short, distinct, and highly immersive options for what the User could say or do next.
-Return ONLY a raw JSON array of 3 strings. Each option must be short (5-15 words), written in the active perspective of the User, and can mix speech and actions (e.g. *I turn away, hiding my blush* "No, I'm fine").
-Do NOT include any markdown blocks (like \`\`\`json), comments, numbering, or introductory text. Just return the JSON array.
+    const systemPrompt = `You are a creative roleplay story assistant generating action/dialogue options for a specific user.${personaBlock}
+
+Analyze the following recent conversation history and generate 3 short, distinct, and highly immersive options for what ${userName} could say or do next.
+
+CRITICAL RULES:
+- Always write from ${userName}'s perspective as defined in the persona above.
+- Respect their gender, personality, and background. Do NOT assume they are a different gender or role than stated.
+- Each option must be short (5-15 words), written in first person as ${userName}.
+- Options can mix speech and actions (e.g. *I turn away, hiding my blush* "No, I'm fine").
+- Return ONLY a raw JSON array of exactly 3 strings. No markdown, no commentary, no numbering.
 
 Example output:
-["*I sigh softly and nod* \\"If you say so...\\"", "*I step closer to them* \\"Wait, tell me more.\\"", "*I cross my arms, raising an eyebrow* \\"Are you sure?\\""]`;
+["*I sigh softly and nod* \\"If you say so...\\"", "*I step closer* \\"Wait, tell me more.\\"", "*I cross my arms* \\"Are you sure?\\""]`;
 
     const apiMessages = [
       { role: 'system', content: systemPrompt },
@@ -9417,16 +9871,25 @@ Example output:
         customUrl: this.customApiUrl,
         messages: apiMessages,
         temperature: 0.8,
+        // Always disable reasoning for chips sub-calls — they only need 150 tokens
+        // and reasoning would consume the entire budget, producing no usable content
+        enableReasoning: false,
         extraParams: {
           max_tokens: 150
         }
       });
-      const rawContent = extractChoiceContent(data).trim();
+
+      // extractChoiceContent returns { content, reasoning } — use .content, not the whole object
+      const rawContent = extractChoiceContent(data).content.trim();
       
       let cleanJson = rawContent;
       if (cleanJson.startsWith('```')) {
         cleanJson = cleanJson.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
       }
+
+      // Fallback: strip any leading/trailing non-JSON text before parsing
+      const jsonMatch = cleanJson.match(/\[.*\]/s);
+      if (jsonMatch) cleanJson = jsonMatch[0];
       
       const choices = JSON.parse(cleanJson);
       if (Array.isArray(choices) && choices.length > 0) {

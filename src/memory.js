@@ -432,7 +432,7 @@ ${conversationText}
       temperature: 0.2,
       max_tokens: 300
     });
-    const summary = extractChoiceContent(data).trim();
+    const summary = extractChoiceContent(data).content.trim();
     if (!summary) return null;
     return {
       summary,

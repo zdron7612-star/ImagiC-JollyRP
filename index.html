@@ -457,8 +457,16 @@
         <div
           style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 10px;">
           <h4
-            style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0; font-size: 16px; display: flex; align-items: center; gap: 6px;">
-            🎨 AI Response Stylist</h4>
+            style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 14.7255 3.09032 17.1962 4.85857 19C5.0346 19.176 5.14376 19.4187 5.14376 19.6865C5.14376 20.9632 6.1782 22 7.45493 22H12Z"></path>
+              <circle cx="7.5" cy="10.5" r="1.5" fill="currentColor"></circle>
+              <circle cx="11.5" cy="7.5" r="1.5" fill="currentColor"></circle>
+              <circle cx="16.5" cy="9.5" r="1.5" fill="currentColor"></circle>
+              <circle cx="15.5" cy="14.5" r="1.5" fill="currentColor"></circle>
+            </svg>
+            AI Response Stylist
+          </h4>
           <button id="btn-close-chat-style"
             style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; font-weight: bold; padding: 0 4px;">×</button>
         </div>
@@ -469,8 +477,11 @@
           <!-- SECTION 1: AI Actions -->
           <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 14px;">
             <div
-              style="font-size: 12.5px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-              ✨ AI Action Tags (*action*)
+              style="font-size: 12.5px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"/>
+              </svg>
+              AI Action Tags (*action*)
             </div>
             <div style="display: flex; flex-direction: column; gap: 8px;">
               <div class="form-group">
@@ -526,8 +537,11 @@
           <!-- SECTION 2: AI Quotes/Speech -->
           <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 14px;">
             <div
-              style="font-size: 12.5px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-              💬 AI Quotes/Speech ("speech")
+              style="font-size: 12.5px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              AI Quotes/Speech ("speech")
             </div>
             <div style="display: flex; flex-direction: column; gap: 8px;">
               <div class="form-group">
@@ -583,8 +597,12 @@
           <!-- SECTION 3: AI Other / Narrative Text -->
           <div style="padding-bottom: 8px;">
             <div
-              style="font-size: 12.5px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-              📖 Plain Text / Narrative
+              style="font-size: 12.5px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+              Plain Text / Narrative
             </div>
             <div style="display: flex; flex-direction: column; gap: 8px;">
               <div class="form-group">
@@ -1284,7 +1302,7 @@
                       1.0 is default (disabled).</span>
                   </div>
 
-                  <div class="form-group">
+                   <div class="form-group">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                       <label for="setting-param-maxtokens" style="font-size: 12px;">Max Response Length: <span
                           id="val-param-maxtokens" style="color: var(--accent-gold); font-weight: bold;">1024</span>
@@ -1294,6 +1312,10 @@
                       style="width: 100%;" class="studio-slider">
                     <span style="font-size: 10px; color: var(--text-muted);">Max length of generated response per
                       message.</span>
+                    <!-- Token budget warning when reasoning is enabled with low tokens -->
+                    <span id="reasoning-token-warning" style="display: none; align-items: center; gap: 6px; margin-top: 6px; padding: 6px 10px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 6px; font-size: 10px; color: #f0c040; line-height: 1.4;">
+                      ⚠️ <span>With reasoning enabled, models use tokens for thinking first. Set at least <strong>1024 tokens</strong> to avoid blank/cut-off responses.</span>
+                    </span>
                   </div>
 
                   <!-- Enable Suggestion Chips -->
@@ -1306,6 +1328,50 @@
                       <input type="checkbox" id="setting-param-suggestion-chips" style="opacity: 0; width: 0; height: 0;" checked>
                       <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 22px; border: 1px solid var(--border-muted);"></span>
                     </label>
+                  </div>
+
+                  <!-- Reasoning Engine settings group -->
+                  <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px; margin-top: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
+                        <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+                        <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+                        <path d="M12 5v14"/>
+                        <path d="M12 12h6"/>
+                        <path d="M12 12H6"/>
+                      </svg>
+                      <span style="font-family: var(--font-brand); font-size: 11.5px; font-weight: 700; color: var(--accent-gold); letter-spacing: 0.5px; text-transform: uppercase;">Model Reasoning Engine</span>
+                    </div>
+                    
+                    <div style="background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255,255,255,0.04); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; flex-direction: column; gap: 12px;">
+                      <!-- Enable Model Reasoning -->
+                      <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                        <div style="text-align: left; flex: 1; padding-right: 8px;">
+                          <label for="setting-param-enable-reasoning" style="font-size: 12px; font-weight: 600; color: var(--text-main); cursor: pointer; display: block;">
+                            Enable Model Reasoning
+                          </label>
+                          <span style="font-size: 9.5px; color: var(--text-muted); display: block; line-height: 1.4; margin-top: 1px;">Request thinking/reasoning from the model. Disable to save output tokens.</span>
+                        </div>
+                        <label class="switch-toggle" style="position: relative; display: inline-block; width: 36px; height: 18px; flex-shrink: 0; cursor: pointer; margin-top: 2px;">
+                          <input type="checkbox" id="setting-param-enable-reasoning" style="opacity: 0; width: 0; height: 0;" checked>
+                          <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.12); transition: .3s; border-radius: 18px; border: 1px solid var(--border-muted);"></span>
+                        </label>
+                      </div>
+
+                      <!-- Show Reasoning Process -->
+                      <div style="display: flex; align-items: flex-start; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 10px;">
+                        <div style="text-align: left; flex: 1; padding-right: 8px;">
+                          <label for="setting-param-show-reasoning" style="font-size: 12px; font-weight: 600; color: var(--text-main); cursor: pointer; display: block;">
+                            Show Reasoning Process
+                          </label>
+                          <span style="font-size: 9.5px; color: var(--text-muted); display: block; line-height: 1.4; margin-top: 1px;">Display the thinking accordion in chat bubbles when reasoning is enabled.</span>
+                        </div>
+                        <label class="switch-toggle" style="position: relative; display: inline-block; width: 36px; height: 18px; flex-shrink: 0; cursor: pointer; margin-top: 2px;">
+                          <input type="checkbox" id="setting-param-show-reasoning" style="opacity: 0; width: 0; height: 0;" checked>
+                          <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.12); transition: .3s; border-radius: 18px; border: 1px solid var(--border-muted);"></span>
+                        </label>
+                      </div>
+                    </div>
                   </div>
 
                 </div>
@@ -2113,6 +2179,10 @@
             class="studio-slider">
           <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Maximum token length
             for the AI reply.</span>
+          <!-- Token budget warning when reasoning is enabled with low tokens -->
+          <span id="popup-reasoning-token-warning" style="display: none; align-items: center; gap: 6px; margin-top: 8px; padding: 8px 10px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 6px; font-size: 11px; color: #f0c040; line-height: 1.4;">
+            ⚠️ <span>With reasoning enabled, models think first. Set at least <strong>1024 tokens</strong> to avoid cut-off responses.</span>
+          </span>
         </div>
 
         <!-- Enable Suggestion Chips -->
@@ -2125,6 +2195,50 @@
             <input type="checkbox" id="popup-param-suggestion-chips" style="opacity: 0; width: 0; height: 0;" checked>
             <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 22px; border: 1px solid var(--border-muted);"></span>
           </label>
+        </div>
+
+        <!-- Reasoning Engine settings group -->
+        <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; margin-top: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
+              <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+              <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+              <path d="M12 5v14"/>
+              <path d="M12 12h6"/>
+              <path d="M12 12H6"/>
+            </svg>
+            <span style="font-family: var(--font-brand); font-size: 13.5px; font-weight: 700; color: var(--accent-gold); letter-spacing: 0.5px; text-transform: uppercase;">Model Reasoning Engine</span>
+          </div>
+          
+          <div style="background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255,255,255,0.04); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; flex-direction: column; gap: 14px;">
+            <!-- Enable Model Reasoning -->
+            <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+              <div style="text-align: left; flex: 1; padding-right: 12px;">
+                <label for="popup-param-enable-reasoning" style="font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; display: block;">
+                  Enable Model Reasoning
+                </label>
+                <span style="font-size: 10.5px; color: var(--text-muted); display: block; line-height: 1.4; margin-top: 2px;">Request thinking from the model. Disable for faster, token-efficient responses.</span>
+              </div>
+              <label class="switch-toggle" style="position: relative; display: inline-block; width: 40px; height: 20px; flex-shrink: 0; cursor: pointer; margin-top: 2px;">
+                <input type="checkbox" id="popup-param-enable-reasoning" style="opacity: 0; width: 0; height: 0;" checked>
+                <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.12); transition: .3s; border-radius: 20px; border: 1px solid var(--border-muted);"></span>
+              </label>
+            </div>
+
+            <!-- Show Reasoning Process -->
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px;">
+              <div style="text-align: left; flex: 1; padding-right: 12px;">
+                <label for="popup-param-show-reasoning" style="font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; display: block;">
+                  Show Reasoning Process
+                </label>
+                <span style="font-size: 10.5px; color: var(--text-muted); display: block; line-height: 1.4; margin-top: 2px;">Display the thinking accordion in chat bubbles when reasoning is enabled.</span>
+              </div>
+              <label class="switch-toggle" style="position: relative; display: inline-block; width: 40px; height: 20px; flex-shrink: 0; cursor: pointer; margin-top: 2px;">
+                <input type="checkbox" id="popup-param-show-reasoning" style="opacity: 0; width: 0; height: 0;" checked>
+                <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.12); transition: .3s; border-radius: 20px; border: 1px solid var(--border-muted);"></span>
+              </label>
+            </div>
+          </div>
         </div>
 
       </div>

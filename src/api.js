@@ -12,6 +12,80 @@ export const FREE_MODELS = [
   }
 ];
 
+/**
+ * Injects prompt-level reasoning control markers into the messages array.
+/**
+ * Injects prompt-level reasoning control into the messages array.
+ *
+ * This is a three-layer approach designed to work across ALL providers and model types:
+ *
+ * Layer 1 — Natural language instruction (universal):
+ *   Works for any instruction-following model regardless of provider (OpenRouter, Ollama,
+ *   llama.cpp, vLLM, LM Studio, etc.). Models that have been instruction-tuned will follow
+ *   "do not reason" instructions. For models with no reasoning capability, this is just
+ *   inert context they process normally.
+ *
+ * Layer 2 — /no_think token (Qwen3-family):
+ *   Qwen3 and its fine-tunes treat this as a hard signal to skip the thinking phase.
+ *   For models that don't recognize it, it is just a short string they ignore.
+ *
+ * Layer 3 — Empty <think> block seed (DeepSeek R1 / inline-reasoning models):
+ *   Some models (DeepSeek R1, certain llama.cpp builds) that always start with <think>
+ *   can be "tricked" into finishing their think block immediately by seeding an assistant
+ *   message that opens and closes the block. We inject this as a pseudo-assistant prefix.
+ *   Models that don't use this format simply ignore it.
+ *
+ * The response-side stripping in processChunkData() is the final safety net — it removes
+ * any <think>/<thought>/etc. tags even if a model reasons despite these instructions.
+ *
+ * @param {Array} messages - The messages array to modify
+ * @returns {Array} New messages array with no-reasoning markers injected
+ */
+function injectNoThinkMarkers(messages) {
+  const modified = messages.map(m => ({ ...m }));
+
+  // Layer 1 + 2: Append natural language instruction and /no_think token to system message.
+  // Works for any instruction model (L1) and Qwen3-family specifically (L2).
+  const sysIdx = modified.findIndex(m => m.role === 'system');
+  const noReasonInstruction =
+    '\n\n[REASONING DISABLED] Respond directly without any internal thinking, ' +
+    'reasoning steps, or <think> blocks. Do not show your thought process. ' +
+    'Output your response immediately.\n/no_think';
+
+  if (sysIdx !== -1) {
+    modified[sysIdx] = {
+      ...modified[sysIdx],
+      content: modified[sysIdx].content + noReasonInstruction
+    };
+  } else {
+    // No system message exists — prepend one with just the instruction
+    modified.unshift({
+      role: 'system',
+      content: '[REASONING DISABLED] Respond directly without any internal thinking, reasoning steps, or <think> blocks.\n/no_think'
+    });
+  }
+
+  // Layer 3: For inline-think models (DeepSeek R1 style) that always begin with <think>,
+  // find the last assistant turn and see if we can prepend an empty think-close.
+  // We do this by injecting a fake assistant prefix message right before the last user turn,
+  // which forces the model to believe it already completed its thinking.
+  // This is safe: providers that don't understand it treat it as a normal assistant message.
+  const lastUserIdx = modified.reduceRight((found, m, i) => found === -1 && m.role === 'user' ? i : found, -1);
+  if (lastUserIdx > 0) {
+    const prevMsg = modified[lastUserIdx - 1];
+    // Only inject if the previous message isn't already our seed (avoid double-injection)
+    if (prevMsg && prevMsg.role !== 'assistant') {
+      modified.splice(lastUserIdx, 0, {
+        role: 'assistant',
+        content: '<think>\n</think>'
+      });
+    }
+  }
+
+  return modified;
+}
+
+
 export function buildChatCompletionRequest({
   apiKey,
   model,
@@ -20,7 +94,8 @@ export function buildChatCompletionRequest({
   provider = 'openrouter',
   customUrl = '',
   extraParams = {},
-  stream = false
+  stream = false,
+  enableReasoning = true
 }) {
   let endpointUrl = "";
   const headers = {
@@ -58,8 +133,11 @@ export function buildChatCompletionRequest({
     throw new Error(`Unsupported API provider: ${provider}`);
   }
 
+  // Apply prompt-level reasoning control if disabled
+  const effectiveMessages = enableReasoning ? messages : injectNoThinkMarkers(messages);
+
   const requestBody = {
-    messages,
+    messages: effectiveMessages,
     temperature: parseFloat(temperature),
     stream: !!stream
   };
@@ -93,17 +171,6 @@ export function buildChatCompletionRequest({
     }
   }
 
-  const modelLower = (model || '').toLowerCase();
-  const isThinkingModel =
-    modelLower.includes('qwen') ||
-    modelLower.includes('deepseek') ||
-    modelLower.includes('-r1') ||
-    modelLower.includes('reasoning');
-
-  if (provider === 'openrouter' && isThinkingModel) {
-    requestBody.reasoning_format = "hidden";
-  }
-
   if (provider === 'custom') {
     return {
       url: '/api/proxy/completion',
@@ -127,18 +194,15 @@ export function buildChatCompletionRequest({
   };
 }
 
-export function extractChoiceContent(data, { includeReasoning = true } = {}) {
+export function extractChoiceContent(data) {
   const choice = data?.choices?.[0] || {};
   const message = choice.message || {};
   const delta = choice.delta || {};
-  return (
-    delta.content ||
-    message.content ||
-    choice.text ||
-    data?.content ||
-    (includeReasoning ? (delta.reasoning_content || message.reasoning_content) : '') ||
-    ''
-  );
+  
+  const content = delta.content || message.content || choice.text || data?.content || '';
+  const reasoning = delta.reasoning_content || message.reasoning_content || delta.reasoning || message.reasoning || '';
+  
+  return { content, reasoning };
 }
 
 export async function fetchChatCompletionJson(options) {
@@ -181,7 +245,8 @@ export async function streamChatCompletion({
   signal,
   provider = 'openrouter',
   customUrl = '',
-  extraParams = {}
+  extraParams = {},
+  enableReasoning = true
 }) {
   if (provider === 'openrouter' && !apiKey) {
     onError(new Error("API Key is missing. Please add an OpenRouter key in Settings."));
@@ -197,7 +262,8 @@ export async function streamChatCompletion({
       provider,
       customUrl,
       extraParams,
-      stream: true
+      stream: true,
+      enableReasoning
     });
 
     const response = await fetch(request.url, {
@@ -221,32 +287,63 @@ export async function streamChatCompletion({
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
     let fullText = "";
+    let fullReasoning = "";
     let buffer = "";
     
-    // Accumulators for split-safe think tag stripping
-    let rawTextAccumulator = "";
-    let cleanTextAccumulator = "";
+    // Accumulators for split-safe think tag stripping and reasoning extraction
+    let rawContentAccumulator = "";
+    let rawReasoningAccumulator = "";
     let completeRawBody = "";
 
-    const stripThinkTags = (text) => {
-      let cleaned = text.replace(/<think>[\s\S]*?<\/think>/g, "");
-      const openIdx = cleaned.indexOf("<think>");
-      if (openIdx !== -1) {
-        cleaned = cleaned.substring(0, openIdx);
+    const processChunkData = (content, reasoning) => {
+      if (reasoning) {
+        rawReasoningAccumulator += reasoning;
       }
-      // Strip common leaked prompt tags at the start of the message (e.g. Sarvam 105b)
-      cleaned = cleaned.replace(/^(?:\s*<\|im_start\|>\s*(?:assistant)?\s*|\s*<\|start_header_id\|>\s*assistant\s*<\|end_header_id\|>\s*|\s*<\|assistant\|>\s*|\s*<s>\s*|\s*<\/?s>\s*|\s*\[(?:INST|ASSISTANT)\]\s*)/i, "");
-      return cleaned;
-    };
+      if (content) {
+        rawContentAccumulator += content;
+      }
 
-    const processContent = (content) => {
-      rawTextAccumulator += content;
-      const newCleanText = stripThinkTags(rawTextAccumulator);
-      const delta = newCleanText.substring(cleanTextAccumulator.length);
-      if (delta) {
-        cleanTextAccumulator = newCleanText;
-        fullText += delta;
-        onChunk(delta);
+      let cleanContent = rawContentAccumulator;
+      let inlineReasoning = "";
+
+      const tags = [
+        { open: '<think>', close: '</think>' },
+        { open: '<thought>', close: '</thought>' },
+        { open: '[thought]', close: '[/thought]' },
+        { open: '[thinking]', close: '[/thinking]' }
+      ];
+
+      for (const tag of tags) {
+        let openIdx = cleanContent.indexOf(tag.open);
+        while (openIdx !== -1) {
+          let closeIdx = cleanContent.indexOf(tag.close, openIdx + tag.open.length);
+          if (closeIdx !== -1) {
+            const block = cleanContent.substring(openIdx + tag.open.length, closeIdx);
+            inlineReasoning += block + "\n";
+            cleanContent = cleanContent.substring(0, openIdx) + cleanContent.substring(closeIdx + tag.close.length);
+          } else {
+            const block = cleanContent.substring(openIdx + tag.open.length);
+            inlineReasoning += block;
+            cleanContent = cleanContent.substring(0, openIdx);
+          }
+          openIdx = cleanContent.indexOf(tag.open);
+        }
+      }
+
+      // Strip common leaked prompt tags at the start of the message
+      cleanContent = cleanContent.replace(/^(?:\s*<\|im_start\|>\s*(?:assistant)?\s*|\s*<\|start_header_id\|>\s*assistant\s*<\|end_header_id\|>\s*|\s*<\|assistant\|>\s*|\s*<s>\s*|\s*<\/?s>\s*|\s*\[(?:INST|ASSISTANT)\]\s*)/i, "");
+
+      const totalReasoning = rawReasoningAccumulator + inlineReasoning;
+      
+      const contentDelta = cleanContent.substring(fullText.length);
+      const reasoningDelta = totalReasoning.substring(fullReasoning.length);
+
+      if (contentDelta || reasoningDelta) {
+        fullText = cleanContent;
+        fullReasoning = totalReasoning;
+        if (onChunk) {
+          onChunk(contentDelta, reasoningDelta);
+        }
       }
     };
 
@@ -272,10 +369,10 @@ export async function streamChatCompletion({
             if (rawData === "[DONE]") continue;
             
             const parsed = JSON.parse(rawData);
-            const content = extractChoiceContent(parsed, { includeReasoning: true });
+            const { content, reasoning } = extractChoiceContent(parsed);
             
-            if (content) {
-              processContent(content);
+            if (content || reasoning) {
+              processChunkData(content, reasoning);
             }
           } catch (e) {
             // Ignore incomplete JSON chunks in streaming
@@ -293,9 +390,9 @@ export async function streamChatCompletion({
           const rawData = cleanLine.substring(colonIdx + 1).trim();
           if (rawData !== "[DONE]") {
             const parsed = JSON.parse(rawData);
-            const content = extractChoiceContent(parsed, { includeReasoning: true });
-            if (content) {
-              processContent(content);
+            const { content, reasoning } = extractChoiceContent(parsed);
+            if (content || reasoning) {
+              processChunkData(content, reasoning);
             }
           }
         } catch (e) {}
@@ -308,31 +405,26 @@ export async function streamChatCompletion({
       if (fullBuffer && (fullBuffer.startsWith("{") || fullBuffer.startsWith("["))) {
         try {
           const parsed = JSON.parse(fullBuffer);
-          const content = extractChoiceContent(parsed, { includeReasoning: true });
-          if (content) {
-            const cleanContent = stripThinkTags(content);
-            if (cleanContent) {
-              fullText = cleanContent;
-              onChunk(cleanContent);
-            }
+          const { content, reasoning } = extractChoiceContent(parsed);
+          if (content || reasoning) {
+            processChunkData(content, reasoning);
           } else if (parsed.error) {
              const errorMsg = typeof parsed.error === 'string' ? parsed.error : (parsed.error.message || JSON.stringify(parsed.error));
              throw new Error(errorMsg);
           }
         } catch (e) {
           if (e.message && !e.message.includes("JSON") && !e.message.toLowerCase().includes("unexpected token") && !e.message.toLowerCase().includes("valid json")) {
-            throw e; // rethrow if it was the error we explicitly threw above
+            throw e;
           }
-          // Not a valid JSON or incomplete
         }
       }
     }
 
-    if (!fullText) {
+    if (!fullText && !fullReasoning) {
       throw new Error("Empty response received from AI model. Please check your settings, model selections, or credit balance.");
     }
 
-    onFinish(fullText);
+    onFinish(fullText, fullReasoning);
   } catch (error) {
     onError(error);
   }

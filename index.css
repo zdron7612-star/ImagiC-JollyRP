@@ -2948,6 +2948,111 @@ body.theme-lavender .chat-header-btn.exit-btn:hover {
 }
 
 
+/* Collapsible Thinking Accordion */
+.msg-thought-accordion {
+  margin: 10px 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-left: 3px solid var(--accent-gold);
+  background: rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.msg-thought-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  outline: none;
+  user-select: none;
+  transition: background 0.25s, color 0.2s;
+}
+
+.msg-thought-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.msg-thought-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-gold);
+  transition: transform 0.25s;
+}
+
+.msg-thought-header:hover .msg-thought-icon {
+  transform: scale(1.1);
+}
+
+.msg-thought-title {
+  font-family: var(--font-brand);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-main);
+  opacity: 0.8;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  flex: 1;
+  transition: opacity 0.2s;
+}
+
+.msg-thought-header:hover .msg-thought-title {
+  opacity: 1;
+}
+
+.msg-thought-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s;
+}
+
+.msg-thought-header:hover .msg-thought-chevron {
+  color: var(--text-main);
+}
+
+.msg-thought-accordion:not(.collapsed) .msg-thought-chevron {
+  transform: rotate(180deg);
+}
+
+.msg-thought-content-wrapper {
+  max-height: 400px;
+  opacity: 1;
+  overflow-y: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+
+.msg-thought-accordion.collapsed .msg-thought-content-wrapper {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  border-top-color: transparent;
+}
+
+.msg-thought-content {
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: pre-wrap;
+  background: rgba(0, 0, 0, 0.2);
+  font-family: var(--font-body), monospace;
+  border-left: 2px solid rgba(255, 255, 255, 0.02);
+}
+
+
+
 
 
 
