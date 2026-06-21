@@ -1,4 +1,4 @@
-name: Build and Release
+name: Create Release
 
 on:
   push:
@@ -7,17 +7,9 @@ on:
 
 jobs:
   release:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: --linux
-          - os: windows-latest
-            target: --win
 
     steps:
       - name: Checkout repository
@@ -35,7 +27,38 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Compile and Publish Binaries
-        run: npx electron-builder ${{ matrix.target }} --publish always
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            ## 🚀 JollyRP ${{ github.ref_name }}
+
+            > **No installer needed.** JollyRP now runs directly from source in your browser.
+
+            ### Quick Start
+
+            ```bash
+            git clone https://github.com/zdron7612-star/ImagiC-JollyRP.git
+            cd ImagiC-JollyRP
+            ```
+
+            **Linux / macOS:**
+            ```bash
+            chmod +x setup.sh start.sh
+            ./setup.sh   # Run once
+            ./start.sh   # Run every time
+            ```
+
+            **Windows:**
+            ```
+            Setup.bat    ← Run once
+            Start.bat    ← Run every time
+            ```
+
+            Then open your browser at **http://localhost:3001**
+
+            ---
+            See the [README](https://github.com/zdron7612-star/ImagiC-JollyRP#readme) for full setup instructions.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -116,6 +116,46 @@ function sanitizeCompletionProxyHeaders(inputHeaders = {}) {
   return safeHeaders;
 }
 
+// Regex covering RFC-1918 private ranges, loopback, and link-local
+const PRIVATE_IP_REGEX = /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\.|0\.0\.0\.0|::1$|localhost$|fc00|fd)/i;
+
+// Allowed hosts for character PNG downloads (SSRF guard)
+const ALLOWED_CARD_HOSTS = new Set([
+  'avatars.janitorai.com',
+  'cdn.janitorai.com',
+  'api.jannyai.com',
+  'image.jannyai.com',
+  's3.amazonaws.com',
+  'chub.ai',
+  'avatars.chub.ai',
+  'api.chub.ai',
+  'media.chub.ai',
+  'avatars.charhub.io',
+  'charhub.io'
+]);
+
+
+function validateCardDownloadUrl(rawUrl) {
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error('Invalid card download URL');
+  }
+  if (parsed.protocol !== 'https:') {
+    throw new Error('Card download URL must use HTTPS');
+  }
+  // Block private/loopback ranges
+  if (PRIVATE_IP_REGEX.test(parsed.hostname)) {
+    throw new Error('Card download URL targets a private address');
+  }
+  // Only allow known CDN hosts (prevents open-SSRF via untrusted API response)
+  if (!ALLOWED_CARD_HOSTS.has(parsed.hostname)) {
+    throw new Error(`Card download URL host not allowed: ${parsed.hostname}`);
+  }
+  return parsed.toString();
+}
+
 function validateCompletionEndpoint(endpointUrl) {
   if (!endpointUrl || typeof endpointUrl !== 'string') {
     throw new Error('Missing endpointUrl');
@@ -134,6 +174,11 @@ function validateCompletionEndpoint(endpointUrl) {
 
   if (!parsed.pathname.endsWith('/chat/completions')) {
     throw new Error('Custom endpoint must target an OpenAI-compatible /chat/completions route');
+  }
+
+  // Block SSRF to private/loopback addresses
+  if (PRIVATE_IP_REGEX.test(parsed.hostname)) {
+    throw new Error('Custom endpoint cannot target private or local network addresses');
   }
 
   return parsed.toString();
@@ -287,17 +332,20 @@ function estimateSliders(charData) {
 
 // 1. Chub AI Proxy Search
 app.get('/api/chub/search', (req, res) => {
-  const logFile = path.join(appDataPath, 'data', 'proxy.log');
-  const logDir = path.dirname(logFile);
-  if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-  fs.appendFileSync(logFile, `[${new Date().toISOString()}] SEARCH req.url: ${req.url}\n`);
-
   try {
+    const dataDir = path.join(appDataPath, 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    const logPath = path.join(dataDir, 'proxy.log');
+    fs.appendFileSync(logPath, `SEARCH req.url: ${req.url}\n`);
+
     const search = req.query.search || '';
-    const first = req.query.first || '20';
-    const page = req.query.page || '1';
-    const sort = req.query.sort || 'download_count';
-    const nsfw = req.query.nsfw || 'false';
+    const first = Math.max(1, Math.min(100, parseInt(req.query.first) || 20)).toString();
+    const page = Math.max(1, parseInt(req.query.page) || 1).toString();
+    const validSorts = new Set(['download_count', 'star_count', 'trending_ratio', 'hidden_gems', 'high_effort_recent', 'last_activity_at', 'created_at']);
+    const sort = validSorts.has(req.query.sort) ? req.query.sort : 'download_count';
+    const nsfw = req.query.nsfw === 'true' ? 'true' : 'false';
     const topics = req.query.topics || '';
 
     let pathStr = `/search?search=${encodeURIComponent(search)}&first=${first}&page=${page}&sort=${sort}&nsfw=${nsfw}`;
@@ -318,7 +366,6 @@ app.get('/api/chub/search', (req, res) => {
     };
 
     const proxyReq = https.request(options, (proxyRes) => {
-      fs.appendFileSync(logFile, `[${new Date().toISOString()}] RESPONSE STATUS: ${proxyRes.statusCode}\n`);
       res.writeHead(proxyRes.statusCode, {
         'Content-Type': 'application/json'
       });
@@ -327,15 +374,13 @@ app.get('/api/chub/search', (req, res) => {
 
     proxyReq.on('error', (err) => {
       console.error('Proxy request error:', err);
-      fs.appendFileSync(logFile, `[${new Date().toISOString()}] PROXY ERROR: ${err.stack || err.message}\n`);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: 'Search request failed' });
     });
 
     proxyReq.end();
   } catch (err) {
     console.error('Error in /api/chub/search:', err);
-    fs.appendFileSync(logFile, `[${new Date().toISOString()}] CATCH ERROR: ${err.stack || err.message}\n`);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -347,22 +392,31 @@ app.post('/api/chub/import-card', async (req, res) => {
       return res.status(400).json({ error: 'Missing card URL' });
     }
 
-    const { charData, base64Avatar } = await downloadPngAndExtractMetadata(url);
+    // SSRF guard: only allow downloads from known Chub CDN hosts
+    const safeUrl = validateCardDownloadUrl(url);
+    const { charData, base64Avatar } = await downloadPngAndExtractMetadata(safeUrl);
     
     // Sanitize generated char ID just in case
     const charId = sanitizeId(`char_chub_${Date.now()}`);
     
+    const isJanitorCard = charData.creator === 'JanitorAI' || 
+                         charData.creator === 'Janitor AI' ||
+                         (charData.description && (charData.description.includes('Personality\n') || charData.description.includes('>**Personality:**') || charData.description.includes('**Personality:**')));
+
+    const desc = isJanitorCard ? (charData.personality || charData.char_persona || charData.description || '') : (charData.description || charData.char_description || charData.char_persona || '');
+    const pers = isJanitorCard ? (charData.description || charData.char_description || charData.char_persona || '') : (charData.personality || charData.char_persona || '');
+
     const jollyChar = {
       id: charId,
       name: charData.name || charData.char_name || 'Community Character',
-      tagline: charData.title || charData.char_persona?.substring(0, 80) || 'Imported from Chub AI',
-      description: charData.description || charData.char_description || charData.char_persona || '',
-      personality: charData.personality || charData.char_persona || '',
+      tagline: charData.title || charData.char_persona?.substring(0, 80) || (isJanitorCard ? 'Imported from JanitorAI' : 'Imported from Chub AI'),
+      description: desc,
+      personality: pers,
       firstMessage: charData.first_mes || charData.char_greeting || 'Hello there!',
       speechQuirks: charData.mes_template || '',
       avatar: base64Avatar,
       tags: charData.tags || charData.topics || [],
-      creator: charData.creator || 'Chub.ai',
+      creator: charData.creator || (isJanitorCard ? 'JanitorAI' : 'Chub.ai'),
       lorebook: charData.lorebook || [],
       nsfw: !!nsfw
     };
@@ -380,6 +434,101 @@ app.post('/api/chub/import-card', async (req, res) => {
     res.json({ success: true, character: jollyChar });
   } catch (err) {
     console.error('Error in /api/chub/import-card:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2.5 Janitor AI Import Card
+app.post('/api/janitor/import-url', async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({ error: 'Missing Janitor URL' });
+    }
+
+    const uuidMatch = url.match(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i);
+    if (!uuidMatch) {
+      return res.status(400).json({ error: 'Invalid URL. Could not find Janitor character UUID.' });
+    }
+    const characterId = uuidMatch[0];
+
+    const postData = JSON.stringify({ characterId });
+    const jannyUrl = await new Promise((resolve, reject) => {
+      const options = {
+        hostname: 'api.jannyai.com',
+        path: '/api/v1/download',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData),
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      };
+
+      const jannyReq = https.request(options, (jannyRes) => {
+        let responseBody = '';
+        jannyRes.on('data', (chunk) => { responseBody += chunk; });
+        jannyRes.on('end', () => {
+          try {
+            if (jannyRes.statusCode !== 200) {
+              reject(new Error(`JannyAI API returned status ${jannyRes.statusCode}`));
+              return;
+            }
+            const data = JSON.parse(responseBody);
+            if (data.status === 'error' || !data.downloadUrl) {
+              reject(new Error(data.error || 'Character not found on JannyAI archive'));
+              return;
+            }
+            resolve(data.downloadUrl);
+          } catch (e) {
+            reject(new Error(`Failed to parse JannyAI response: ${e.message}`));
+          }
+        });
+      });
+
+      jannyReq.on('error', (e) => reject(e));
+      jannyReq.write(postData);
+      jannyReq.end();
+    });
+
+    // SSRF guard: the downloadUrl from JannyAI must point to a known CDN host
+    const safeJannyUrl = validateCardDownloadUrl(jannyUrl);
+    const { charData, base64Avatar } = await downloadPngAndExtractMetadata(safeJannyUrl);
+    
+    const charId = sanitizeId(`char_janitor_${Date.now()}`);
+    
+    const needsSwap = !charData.personality || 
+                      (charData.description && (charData.description.includes('Personality\n') || charData.description.includes('>**Personality:**') || charData.description.includes('**Personality:**')));
+
+    const desc = needsSwap ? (charData.personality || charData.char_persona || charData.description || '') : (charData.description || charData.char_description || charData.char_persona || '');
+    const pers = needsSwap ? (charData.description || charData.char_description || charData.char_persona || '') : (charData.personality || charData.char_persona || '');
+
+    const jollyChar = {
+      id: charId,
+      name: charData.name || charData.char_name || 'Janitor Character',
+      tagline: charData.title || charData.char_persona?.substring(0, 80) || 'Imported from JanitorAI',
+      description: desc,
+      personality: pers,
+      firstMessage: charData.first_mes || charData.char_greeting || 'Hello there!',
+      speechQuirks: charData.mes_template || '',
+      avatar: base64Avatar,
+      tags: charData.tags || charData.topics || [],
+      creator: charData.creator || 'JanitorAI',
+      nsfw: true
+    };
+
+    jollyChar.sliders = estimateSliders(jollyChar);
+
+    const dataDir = path.join(appDataPath, 'data');
+    const charsDir = path.join(dataDir, 'characters');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+    if (!fs.existsSync(charsDir)) fs.mkdirSync(charsDir);
+    
+    fs.writeFileSync(path.join(charsDir, `${charId}.json`), JSON.stringify(jollyChar, null, 2), 'utf-8');
+
+    res.json({ success: true, character: jollyChar });
+  } catch (err) {
+    console.error('Error in /api/janitor/import-url:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -413,12 +562,16 @@ app.get('/api/load', (req, res) => {
         if (secureSettings.apiKey) {
           secureSettings.apiKey = decrypt(secureSettings.apiKey);
         }
-        if (secureSettings.apiKeys) {
-          secureSettings.apiKeys = {
-            openrouter: decrypt(secureSettings.apiKeys.openrouter),
-            huggingface: decrypt(secureSettings.apiKeys.huggingface),
-            custom: decrypt(secureSettings.apiKeys.custom)
-          };
+        if (secureSettings.apiKeys && typeof secureSettings.apiKeys === 'object') {
+          const decryptedKeys = {};
+          for (const [providerKey, providerVal] of Object.entries(secureSettings.apiKeys)) {
+            if (typeof providerVal === 'string' && providerVal) {
+              decryptedKeys[providerKey] = decrypt(providerVal);
+            } else {
+              decryptedKeys[providerKey] = '';
+            }
+          }
+          secureSettings.apiKeys = decryptedKeys;
         }
         if (secureSettings.tts && secureSettings.tts.customKey) {
           secureSettings.tts.customKey = decrypt(secureSettings.tts.customKey);
@@ -426,6 +579,56 @@ app.get('/api/load', (req, res) => {
         settings = secureSettings;
       } catch (e) {
         console.error('Error parsing/decrypting settings:', e);
+      }
+    }
+
+    // Check if recovery script output exists and merge it
+    const extractedPath = path.join(dataDir, 'extracted_localstorage.json');
+    if (fs.existsSync(extractedPath)) {
+      try {
+        const extractedData = JSON.parse(fs.readFileSync(extractedPath, 'utf-8'));
+        console.log('[Server] Found extracted_localstorage.json from recovery script.');
+        let merged = false;
+        if (extractedData.theme && settings.theme !== extractedData.theme) {
+          settings.theme = extractedData.theme;
+          merged = true;
+        }
+        if (extractedData.styleSettings) {
+          settings.styleSettings = {
+            ...settings.styleSettings,
+            ...extractedData.styleSettings
+          };
+          merged = true;
+        }
+        if (merged) {
+          const secureSettings = { ...settings };
+          if (secureSettings.apiKey) {
+            secureSettings.apiKey = encrypt(secureSettings.apiKey);
+          }
+          if (secureSettings.apiKeys && typeof secureSettings.apiKeys === 'object') {
+            const encryptedKeys = {};
+            for (const [providerKey, providerVal] of Object.entries(secureSettings.apiKeys)) {
+              if (typeof providerVal === 'string' && providerVal) {
+                encryptedKeys[providerKey] = encrypt(providerVal);
+              } else {
+                encryptedKeys[providerKey] = '';
+              }
+            }
+            secureSettings.apiKeys = encryptedKeys;
+          }
+          if (secureSettings.tts && secureSettings.tts.customKey) {
+            secureSettings.tts = {
+              ...secureSettings.tts,
+              customKey: encrypt(secureSettings.tts.customKey)
+            };
+          }
+          fs.writeFileSync(settingsPath, JSON.stringify(secureSettings, null, 2), 'utf-8');
+          console.log('[Server] Successfully merged extracted theme/styles into settings.json');
+        }
+        fs.unlinkSync(extractedPath);
+        console.log('[Server] Cleaned up extracted_localstorage.json.');
+      } catch (err) {
+        console.error('[Server] Failed to process extracted_localstorage.json:', err);
       }
     }
 
@@ -485,6 +688,10 @@ app.get('/api/load', (req, res) => {
 });
 
 // 4. Save local data
+// IMPORTANT: /api/save is ADDITIVE-ONLY. It only writes/updates data, NEVER deletes.
+// Deletions happen exclusively through explicit DELETE endpoints below.
+// This prevents any accidental data wipe if the client sends an empty or stale payload
+// (e.g., after localStorage is cleared due to URL/origin change, cookie purge, etc.)
 app.post('/api/save', (req, res) => {
   try {
     const { settings, characters, sessions, personas } = req.body;
@@ -501,12 +708,16 @@ app.post('/api/save', (req, res) => {
       if (secureSettings.apiKey) {
         secureSettings.apiKey = encrypt(secureSettings.apiKey);
       }
-      if (secureSettings.apiKeys) {
-        secureSettings.apiKeys = {
-          openrouter: encrypt(secureSettings.apiKeys.openrouter),
-          huggingface: encrypt(secureSettings.apiKeys.huggingface),
-          custom: encrypt(secureSettings.apiKeys.custom)
-        };
+      if (secureSettings.apiKeys && typeof secureSettings.apiKeys === 'object') {
+        const encryptedKeys = {};
+        for (const [providerKey, providerVal] of Object.entries(secureSettings.apiKeys)) {
+          if (typeof providerVal === 'string' && providerVal) {
+            encryptedKeys[providerKey] = encrypt(providerVal);
+          } else {
+            encryptedKeys[providerKey] = '';
+          }
+        }
+        secureSettings.apiKeys = encryptedKeys;
       }
       if (secureSettings.tts && secureSettings.tts.customKey) {
         secureSettings.tts = {
@@ -521,70 +732,78 @@ app.post('/api/save', (req, res) => {
       fs.writeFileSync(path.join(dataDir, 'personas.json'), JSON.stringify(personas, null, 2), 'utf-8');
     }
 
-    if (characters) {
-      const activeCharIds = new Set(characters.map(c => sanitizeId(c.id)));
-      const existingCharFiles = fs.readdirSync(charsDir);
-      existingCharFiles.forEach(file => {
-        if (file.endsWith('.json')) {
-          const id = path.basename(file, '.json');
-          if (!activeCharIds.has(id)) {
-            fs.unlinkSync(path.join(charsDir, file));
-          }
-        }
-      });
+    // Characters: additive only — write/update each character, never delete
+    if (characters && characters.length > 0) {
       characters.forEach(char => {
         const safeId = sanitizeId(char.id);
-        if(safeId) {
-            fs.writeFileSync(path.join(charsDir, `${safeId}.json`), JSON.stringify(char, null, 2), 'utf-8');
+        if (safeId) {
+          fs.writeFileSync(path.join(charsDir, `${safeId}.json`), JSON.stringify(char, null, 2), 'utf-8');
         }
       });
     }
 
+    // Sessions: additive only — write/update each session file, never delete folders or files
     if (sessions) {
-      const activeCharIdsForChats = new Set(Object.keys(sessions).map(id => sanitizeId(id)));
-      
-      if (fs.existsSync(chatsDir)) {
-        const existingCharFolders = fs.readdirSync(chatsDir);
-        existingCharFolders.forEach(folder => {
-          const folderPath = path.join(chatsDir, folder);
-          if (fs.statSync(folderPath).isDirectory()) {
-            if (!activeCharIdsForChats.has(folder)) {
-              fs.rmSync(folderPath, { recursive: true, force: true });
-            }
-          }
-        });
-      }
-
       Object.entries(sessions).forEach(([charId, charSessions]) => {
         const safeCharId = sanitizeId(charId);
-        if(!safeCharId) return;
+        if (!safeCharId) return;
 
         const charChatDir = path.join(chatsDir, safeCharId);
         if (!fs.existsSync(charChatDir)) fs.mkdirSync(charChatDir);
 
-        const activeSessionIds = new Set(charSessions.map(s => sanitizeId(s.id)));
-        const existingSessionFiles = fs.readdirSync(charChatDir);
-        existingSessionFiles.forEach(file => {
-          if (file.endsWith('.json')) {
-            const id = path.basename(file, '.json');
-            if (!activeSessionIds.has(id)) {
-              fs.unlinkSync(path.join(charChatDir, file));
+        if (Array.isArray(charSessions)) {
+          charSessions.forEach(session => {
+            const safeSessionId = sanitizeId(session.id);
+            if (safeSessionId) {
+              fs.writeFileSync(path.join(charChatDir, `${safeSessionId}.json`), JSON.stringify(session, null, 2), 'utf-8');
             }
-          }
-        });
-
-        charSessions.forEach(session => {
-          const safeSessionId = sanitizeId(session.id);
-          if(safeSessionId) {
-            fs.writeFileSync(path.join(charChatDir, `${safeSessionId}.json`), JSON.stringify(session, null, 2), 'utf-8');
-          }
-        });
+          });
+        }
       });
     }
 
     res.json({ success: true });
   } catch (err) {
     console.error('Error in /api/save:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4a. Explicit DELETE endpoint for a single character and all its chats
+app.delete('/api/characters/:charId', (req, res) => {
+  try {
+    const safeCharId = sanitizeId(req.params.charId);
+    if (!safeCharId) return res.status(400).json({ error: 'Invalid character ID' });
+
+    const dataDir = path.join(appDataPath, 'data');
+    const charFile = path.join(dataDir, 'characters', `${safeCharId}.json`);
+    const charChatsDir = path.join(dataDir, 'chats', safeCharId);
+
+    if (fs.existsSync(charFile)) fs.unlinkSync(charFile);
+    if (fs.existsSync(charChatsDir)) fs.rmSync(charChatsDir, { recursive: true, force: true });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error in DELETE /api/characters/:charId:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4b. Explicit DELETE endpoint for a single chat session
+app.delete('/api/chats/:charId/:sessionId', (req, res) => {
+  try {
+    const safeCharId = sanitizeId(req.params.charId);
+    const safeSessionId = sanitizeId(req.params.sessionId);
+    if (!safeCharId || !safeSessionId) return res.status(400).json({ error: 'Invalid ID' });
+
+    const dataDir = path.join(appDataPath, 'data');
+    const sessionFile = path.join(dataDir, 'chats', safeCharId, `${safeSessionId}.json`);
+
+    if (fs.existsSync(sessionFile)) fs.unlinkSync(sessionFile);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error in DELETE /api/chats/:charId/:sessionId:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -613,7 +832,8 @@ app.get('/api/export', (req, res) => {
 });
 
 // 6. Import Data (Upload ZIP)
-const upload = multer({ storage: multer.memoryStorage() });
+// Limit upload size to 100 MB to prevent DoS via oversized backup files
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
 app.post('/api/import', upload.single('backup'), (req, res) => {
   try {
     if (!req.file) {
@@ -622,13 +842,23 @@ app.post('/api/import', upload.single('backup'), (req, res) => {
     
     const zip = new AdmZip(req.file.buffer);
     const dataDir = path.join(appDataPath, 'data');
-    
+
+    // Zip Slip protection: ensure no entry escapes the data directory
+    const resolvedDataDir = path.resolve(dataDir);
+    const entries = zip.getEntries();
+    for (const entry of entries) {
+      const entryPath = path.resolve(resolvedDataDir, entry.entryName);
+      if (!entryPath.startsWith(resolvedDataDir + path.sep) && entryPath !== resolvedDataDir) {
+        return res.status(400).json({ error: 'Invalid backup file: contains unsafe path entries.' });
+      }
+    }
+
     // Clear existing data directory fully to prevent ghost files
     if (fs.existsSync(dataDir)) {
       fs.rmSync(dataDir, { recursive: true, force: true });
     }
     fs.mkdirSync(dataDir, { recursive: true });
-    
+
     // Extract the zip contents directly into dataDir
     zip.extractAllTo(dataDir, true);
     
@@ -723,6 +953,9 @@ app.use((err, req, res, next) => {
 });
 
 const port = process.env.PORT || 3001;
-app.listen(port, () => {
-  console.log(`JollyRP Local Server listening on port ${port}`);
+// Bind to localhost only — prevents LAN/network exposure.
+// Set HOST=0.0.0.0 in environment only if you explicitly want LAN access.
+const host = process.env.HOST || '127.0.0.1';
+app.listen(port, host, () => {
+  console.log(`JollyRP Local Server listening on http://${host}:${port}`);
 });

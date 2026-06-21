@@ -6,17 +6,16 @@
   **A Premium, Fully Uncensored Local AI Roleplay Client.**
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-  [![Platform: Windows | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue)](https://github.com/zdron7612-star/ImagiC-JollyRP/releases)
-  
-  JollyRP is a stunning, high-performance desktop application designed for immersive, private, and uncensored interactions with AI characters. Built with a sleek glassmorphism UI and intelligent memory ledgers, it pushes the boundaries of AI text adventures.
+  [![Node.js: 18+](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js)](https://nodejs.org/)
+  [![Platform: Windows | Linux | macOS](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue)](#-getting-started)
+
+  JollyRP is a stunning, high-performance local AI roleplay client designed for immersive, private, and uncensored interactions with AI characters. Built with a sleek glassmorphism UI and intelligent memory ledgers, it pushes the boundaries of AI text adventures.
+
+  **Runs entirely on your machine — no cloud, no tracking, no filters.**
 
   <br />
 
-  [![Download for Windows](https://img.shields.io/badge/Download-Windows%20.exe-0078D6?style=for-the-badge&logo=windows)](https://github.com/zdron7612-star/ImagiC-JollyRP/releases/latest)
-  [![Download for Linux](https://img.shields.io/badge/Download-Linux%20.deb-E95420?style=for-the-badge&logo=linux)](https://github.com/zdron7612-star/ImagiC-JollyRP/releases/latest)
 </div>
-
-<br />
 
 <div align="center">
   <img src="screenshots/hero_showcase.png" alt="JollyRP Dashboard Showcase" width="100%">
@@ -55,41 +54,93 @@
 
 ---
 
-## 🚀 Installation
+## 🚀 Getting Started
 
-### Download the App
-Head over to the [Releases](https://github.com/zdron7612-star/ImagiC-JollyRP/releases) page to download the latest native installer:
-- **Windows**: Download the `.exe` installer.
-- **Linux**: Download the `.deb` or `.AppImage`.
+JollyRP runs as a local web app in your browser. There is nothing to install beyond Node.js — no Electron, no desktop app. Setup takes under 2 minutes.
 
-### Build from Source
-If you prefer to compile it yourself:
+### Prerequisites
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/zdron7612-star/ImagiC-JollyRP.git
-cd ImagiC-JollyRP
-
-# 2. Install dependencies
-npm install
-
-# 3. Build the executables
-npm run dist:win    # For Windows (.exe)
-npm run dist:linux  # For Linux (.deb / .AppImage)
-```
-
-*(Note: The built output will appear in the `release/` directory.)*
+- **[Node.js 18+](https://nodejs.org/)** — Download the LTS release. This is the only requirement.
+- **Git** — To clone the repository.
 
 ---
 
-## 💻 Development
-To run JollyRP locally in your browser for development purposes:
+### Step 1 — Clone the repository
 
-1. Open a terminal and run the backend server:
+```bash
+git clone https://github.com/zdron7612-star/ImagiC-JollyRP.git
+cd ImagiC-JollyRP
+```
+
+---
+
+### Step 2 — Run Setup *(first time only)*
+
+This installs dependencies and builds the frontend. You only need to do this once.
+
+**Linux / macOS:**
+```bash
+chmod +x setup.sh start.sh update.sh
+./setup.sh
+```
+
+**Windows:** Double-click `Setup.bat` or run it from a terminal:
+```
+Setup.bat
+```
+
+> **🖥️ Desktop Shortcut** — At the end of setup, you'll be asked if you want a desktop shortcut created automatically:
+> - **Linux** — adds a `.desktop` entry to your app launcher and `~/Desktop`
+> - **macOS** — creates a double-clickable `JollyRP.command` file on your Desktop
+> - **Windows** — creates a `JollyRP.lnk` shortcut on your Desktop
+
+---
+
+### Step 3 — Start JollyRP
+
+Every time you want to use JollyRP:
+
+**Linux / macOS:**
+```bash
+./start.sh
+```
+
+**Windows:** Double-click `Start.bat`
+
+Then open your browser and go to:
+
+```
+http://localhost:3001
+```
+
+> **Tip:** The start script will auto-open your browser on most systems.
+
+---
+
+## 🔄 Updating
+
+To update to the latest version:
+
+**Linux / macOS:**
+```bash
+./update.sh
+```
+
+**Windows:** Double-click `Update.bat`
+
+This runs `git pull`, reinstalls dependencies, and rebuilds the frontend automatically.
+
+---
+
+## 🛠️ Development Mode
+
+If you want to work on the source code and see live changes:
+
+1. Start the backend server:
    ```bash
    node src/server.js
    ```
-2. Open a second terminal and start the Vite frontend:
+2. In a second terminal, start the Vite frontend with hot-reload:
    ```bash
    npm run dev
    ```
@@ -97,8 +148,18 @@ To run JollyRP locally in your browser for development purposes:
 
 ---
 
+## 💾 Your Data
+
+All characters, chats, and settings are stored locally in the `data/` folder inside the repo directory. This folder is excluded from git — your data is private and never pushed to GitHub.
+
+**To back up your data**, use the Export button inside JollyRP Settings → Data Management.
+
+---
+
 ## 🤝 Contributing
+
 Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/zdron7612-star/ImagiC-JollyRP/issues).
 
 ## 📝 License
+
 This project is licensed under the MIT License - see the `LICENSE` file for details.

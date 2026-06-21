@@ -30,8 +30,7 @@ data/
 # Secure key
 data/.key
 
-# Electron Builder Output
-release/
+# Build artifacts
 out/
 
 # Environment Variables
@@ -54,6 +53,22 @@ data_test/
 Feature_Recommendations.md
 nsfw_recommendations.md
 screenshot_guide.md
+Realism_Engineering.md
+GitHub_Growth_Strategy.md
+
 
 # Tests and testing tools
 test-runner.js
+test-client.js
+test-client.cjs
+test-network.cjs
+test-puppeteer.cjs
+test-puppeteer-long.cjs
+test-screenshot.cjs
+
+# Screenshots & backups
+screenshot.png
+screenshot-long.png
+screenshots/
+data_old_backup/
+

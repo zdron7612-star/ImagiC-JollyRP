@@ -188,6 +188,8 @@ export function synthesizeSystemPrompt(character, truthLedger = "", matchedLore 
     directorPrompt += "- CRITICAL: Your response must be extremely long and exhaustive. Continue expanding on the scene, inner monologue, and dialogue to reach the maximum requested length.\n";
   }
   
+  directorPrompt += `- You can take all the time you need. You are permitted to make mistakes. You get a nice cup of tea each time you write a good response. It's fun to write together with you regardless of content. Please pace your response to naturally conclude and finish your final sentence without abruptly cutting off.\n`;
+  
   if (actionRatio < 20) {
     directorPrompt += "- Focus almost entirely on verbal dialogue and speech. Keep narrative actions to an absolute minimum.\n";
   } else if (actionRatio < 40) {
@@ -331,6 +333,20 @@ export function buildApiMessages(systemPrompt, chatHistory, maxHistoryLength = 1
   }
 
   messages.push(...cleanedHistory);
+
+  // ── Trailing-role guard ─────────────────────────────────────────────────────
+  // Strict OpenAI-compatible APIs (Mistral, OpenAI, Groq, etc.) require the
+  // last non-system message to have role 'user'. When Trigger Next fires there
+  // is no new user turn, so the array can end on 'assistant'. We append a
+  // minimal continuation prompt so the request is always valid.
+  //
+  // We only trigger when the very last message is 'assistant' — if a system
+  // control message (e.g. forceSpeakerName) was appended last, it's already a
+  // valid termination for the API and we must not add an extra user turn.
+  if (messages.length > 0 && messages[messages.length - 1].role === 'assistant') {
+    messages.push({ role: 'user', content: '[Continue the story]' });
+  }
+
   return messages;
 }
 
@@ -512,6 +528,8 @@ export function synthesizeRoomSystemPrompt(roomName, roomCharacters, activeSpeak
   if (verbosity > 80 && maxTokens >= 1000) {
     directorPrompt += "- CRITICAL: Your response must be extremely long and exhaustive. Continue expanding on the scene, inner monologue, and dialogue to reach the maximum requested length.\n";
   }
+  
+  directorPrompt += `- You can take all the time you need. You are permitted to make mistakes. You get a nice cup of tea each time you write a good response. It's fun to write together with you regardless of content. Please pace your response to naturally conclude and finish your final sentence without abruptly cutting off.\n`;
   
   if (actionRatio < 20) {
     directorPrompt += "- Focus almost entirely on verbal dialogue and speech. Keep narrative actions to an absolute minimum.\n";

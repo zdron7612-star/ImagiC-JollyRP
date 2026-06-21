@@ -12,77 +12,10 @@ export const FREE_MODELS = [
   }
 ];
 
-/**
- * Injects prompt-level reasoning control markers into the messages array.
-/**
- * Injects prompt-level reasoning control into the messages array.
- *
- * This is a three-layer approach designed to work across ALL providers and model types:
- *
- * Layer 1 — Natural language instruction (universal):
- *   Works for any instruction-following model regardless of provider (OpenRouter, Ollama,
- *   llama.cpp, vLLM, LM Studio, etc.). Models that have been instruction-tuned will follow
- *   "do not reason" instructions. For models with no reasoning capability, this is just
- *   inert context they process normally.
- *
- * Layer 2 — /no_think token (Qwen3-family):
- *   Qwen3 and its fine-tunes treat this as a hard signal to skip the thinking phase.
- *   For models that don't recognize it, it is just a short string they ignore.
- *
- * Layer 3 — Empty <think> block seed (DeepSeek R1 / inline-reasoning models):
- *   Some models (DeepSeek R1, certain llama.cpp builds) that always start with <think>
- *   can be "tricked" into finishing their think block immediately by seeding an assistant
- *   message that opens and closes the block. We inject this as a pseudo-assistant prefix.
- *   Models that don't use this format simply ignore it.
- *
- * The response-side stripping in processChunkData() is the final safety net — it removes
- * any <think>/<thought>/etc. tags even if a model reasons despite these instructions.
- *
- * @param {Array} messages - The messages array to modify
- * @returns {Array} New messages array with no-reasoning markers injected
- */
-function injectNoThinkMarkers(messages) {
-  const modified = messages.map(m => ({ ...m }));
-
-  // Layer 1 + 2: Append natural language instruction and /no_think token to system message.
-  // Works for any instruction model (L1) and Qwen3-family specifically (L2).
-  const sysIdx = modified.findIndex(m => m.role === 'system');
-  const noReasonInstruction =
-    '\n\n[REASONING DISABLED] Respond directly without any internal thinking, ' +
-    'reasoning steps, or <think> blocks. Do not show your thought process. ' +
-    'Output your response immediately.\n/no_think';
-
-  if (sysIdx !== -1) {
-    modified[sysIdx] = {
-      ...modified[sysIdx],
-      content: modified[sysIdx].content + noReasonInstruction
-    };
-  } else {
-    // No system message exists — prepend one with just the instruction
-    modified.unshift({
-      role: 'system',
-      content: '[REASONING DISABLED] Respond directly without any internal thinking, reasoning steps, or <think> blocks.\n/no_think'
-    });
-  }
-
-  // Layer 3: For inline-think models (DeepSeek R1 style) that always begin with <think>,
-  // find the last assistant turn and see if we can prepend an empty think-close.
-  // We do this by injecting a fake assistant prefix message right before the last user turn,
-  // which forces the model to believe it already completed its thinking.
-  // This is safe: providers that don't understand it treat it as a normal assistant message.
-  const lastUserIdx = modified.reduceRight((found, m, i) => found === -1 && m.role === 'user' ? i : found, -1);
-  if (lastUserIdx > 0) {
-    const prevMsg = modified[lastUserIdx - 1];
-    // Only inject if the previous message isn't already our seed (avoid double-injection)
-    if (prevMsg && prevMsg.role !== 'assistant') {
-      modified.splice(lastUserIdx, 0, {
-        role: 'assistant',
-        content: '<think>\n</think>'
-      });
-    }
-  }
-
-  return modified;
+export function isReasoningModel(modelId) {
+  if (!modelId) return false;
+  const m = modelId.toLowerCase();
+  return m.includes('r1') || m.includes('reasoner') || m.includes('o1-') || m.includes('o3-') || m.includes('thinking') || m.includes('reasoning') || m.includes('qwq');
 }
 
 
@@ -102,14 +35,16 @@ export function buildChatCompletionRequest({
     "Content-Type": "application/json"
   };
 
-  if (provider === 'openrouter') {
-    endpointUrl = "https://openrouter.ai/api/v1/chat/completions";
-    if (apiKey) {
-      headers["Authorization"] = `Bearer ${apiKey}`;
-    }
-    headers["HTTP-Referer"] = "https://jollyrp.ai";
-    headers["X-Title"] = "JollyRP client";
-  } else if (provider === 'custom') {
+  const PROVIDER_CONFIG = {
+    'openai': { url: 'https://api.openai.com/v1/chat/completions', strict: true },
+    'mistral': { url: 'https://api.mistral.ai/v1/chat/completions', strict: true },
+    'groq': { url: 'https://api.groq.com/openai/v1/chat/completions', strict: true },
+    'deepseek': { url: 'https://api.deepseek.com/chat/completions', strict: true },
+    'together': { url: 'https://api.together.xyz/v1/chat/completions', strict: false },
+    'openrouter': { url: 'https://openrouter.ai/api/v1/chat/completions', strict: false }
+  };
+
+  if (provider === 'custom') {
     const trimmedUrl = (customUrl || '').trim();
     if (!trimmedUrl) {
       throw new Error("Custom API URL is missing. Please add an OpenAI-compatible endpoint in Settings.");
@@ -129,18 +64,28 @@ export function buildChatCompletionRequest({
     if (apiKey) {
       headers["Authorization"] = `Bearer ${apiKey}`;
     }
+  } else if (PROVIDER_CONFIG[provider]) {
+    endpointUrl = PROVIDER_CONFIG[provider].url;
+    if (apiKey) {
+      headers["Authorization"] = `Bearer ${apiKey}`;
+    }
+    if (provider === 'openrouter') {
+      headers["HTTP-Referer"] = "https://jollyrp.ai";
+      headers["X-Title"] = "JollyRP client";
+    }
+  } else if (provider === 'anthropic') {
+    throw new Error("Anthropic native API is not directly supported via OpenAI-compat stream parser yet. Please use OpenRouter to access Claude.");
   } else {
     throw new Error(`Unsupported API provider: ${provider}`);
   }
 
-  // Apply prompt-level reasoning control if disabled
-  const effectiveMessages = enableReasoning ? messages : injectNoThinkMarkers(messages);
-
   const requestBody = {
-    messages: effectiveMessages,
-    temperature: parseFloat(temperature),
+    messages: messages,
     stream: !!stream
   };
+
+  const parsedTemp = parseFloat(temperature);
+  if (!isNaN(parsedTemp)) requestBody.temperature = parsedTemp;
 
   if (model) {
     requestBody.model = model;
@@ -148,47 +93,64 @@ export function buildChatCompletionRequest({
     requestBody.model = 'openrouter/free';
   }
 
-  const isCustomOpenAI = provider === 'custom' && endpointUrl.includes('openai.com');
+  // Detect strict endpoints that reject repetition_penalty or top_k
+  let isStrict = false;
+  if (provider === 'custom') {
+    try {
+      const hostname = new URL(endpointUrl).hostname.toLowerCase();
+      isStrict = ['openai.com', 'mistral.ai', 'anthropic.com', 'groq.com', 'deepseek.com'].some(h => hostname.includes(h));
+    } catch (e) {}
+  } else if (PROVIDER_CONFIG[provider]) {
+    isStrict = PROVIDER_CONFIG[provider].strict;
+  }
 
   if (extraParams.top_p !== undefined) {
-    requestBody.top_p = parseFloat(extraParams.top_p);
+    const parsedTopP = parseFloat(extraParams.top_p);
+    if (!isNaN(parsedTopP)) requestBody.top_p = parsedTopP;
   }
 
   if (extraParams.max_tokens !== undefined) {
-    requestBody.max_tokens = parseInt(extraParams.max_tokens);
-  }
-
-  if (extraParams.top_k !== undefined && parseInt(extraParams.top_k) > 0 && !isCustomOpenAI) {
-    requestBody.top_k = parseInt(extraParams.top_k);
-  }
-
-  if (extraParams.repetition_penalty !== undefined && parseFloat(extraParams.repetition_penalty) !== 1.0) {
-    if (isCustomOpenAI) {
-      const rep = parseFloat(extraParams.repetition_penalty);
-      requestBody.frequency_penalty = Math.min(2.0, Math.max(0.0, (rep - 1.0) * 2.0));
-    } else {
-      requestBody.repetition_penalty = parseFloat(extraParams.repetition_penalty);
+    const parsedMaxTokens = parseInt(extraParams.max_tokens, 10);
+    if (!isNaN(parsedMaxTokens)) {
+      if (provider === 'openai' || (provider === 'custom' && endpointUrl.includes('openai.com'))) {
+         requestBody.max_completion_tokens = parsedMaxTokens; // O1/O3 prefer this
+      }
+      requestBody.max_tokens = parsedMaxTokens;
     }
   }
 
-  if (provider === 'custom') {
-    return {
-      url: '/api/proxy/completion',
-      headers: { 'Content-Type': 'application/json' },
-      body: {
-        endpointUrl,
-        headers,
-        requestBody
-      },
-      endpointUrl,
-      requestBody
-    };
+  if (extraParams.top_k !== undefined) {
+    const parsedTopK = parseInt(extraParams.top_k, 10);
+    if (!isNaN(parsedTopK) && parsedTopK > 0 && !isStrict) {
+      requestBody.top_k = parsedTopK;
+    }
   }
 
+  if (extraParams.repetition_penalty !== undefined) {
+    const parsedRep = parseFloat(extraParams.repetition_penalty);
+    if (!isNaN(parsedRep) && parsedRep !== 1.0 && !isStrict) {
+      requestBody.repetition_penalty = parsedRep;
+    }
+  }
+
+  // Provider-specific reasoning flags
+  if (provider === 'groq' && enableReasoning) {
+    requestBody.reasoning_format = "raw"; // keeps <think> tags in stream for our O(n) parser
+  } else if (provider === 'openrouter' && !enableReasoning) {
+    requestBody.reasoning = { exclude: true };
+  } else if (provider === 'openrouter' && enableReasoning) {
+    requestBody.include_reasoning = true;
+  }
+
+  // Proxy ALL requests to bypass CORS restrictions for APIs like OpenAI/Mistral/DeepSeek
   return {
-    url: endpointUrl,
-    headers,
-    body: requestBody,
+    url: '/api/proxy/completion',
+    headers: { 'Content-Type': 'application/json' },
+    body: {
+      endpointUrl,
+      headers,
+      requestBody
+    },
     endpointUrl,
     requestBody
   };
@@ -200,7 +162,17 @@ export function extractChoiceContent(data) {
   const delta = choice.delta || {};
   
   const content = delta.content || message.content || choice.text || data?.content || '';
-  const reasoning = delta.reasoning_content || message.reasoning_content || delta.reasoning || message.reasoning || '';
+
+  // Collect reasoning from all known provider-specific field names:
+  // - reasoning_content: OpenRouter, DeepSeek, some OpenAI-compat
+  // - reasoning_details: OpenRouter
+  // - reasoning:         older OpenRouter variants
+  // - thinking:          Mistral native AI API (mistral-reasoning-* models)
+  const reasoning =
+    delta.reasoning_content  || message.reasoning_content  ||
+    delta.reasoning_details  || message.reasoning_details  ||
+    delta.reasoning          || message.reasoning          ||
+    delta.thinking           || message.thinking           || '';
   
   return { content, reasoning };
 }
@@ -284,65 +256,176 @@ export async function streamChatCompletion({
       throw new Error(errorMsg);
     }
 
+    if (!response.body) {
+      throw new Error("Stream response has no body. Proxy or endpoint might be failing.");
+    }
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
+    
     let fullText = "";
     let fullReasoning = "";
-    let buffer = "";
-    
-    // Accumulators for split-safe think tag stripping and reasoning extraction
-    let rawContentAccumulator = "";
-    let rawReasoningAccumulator = "";
-    let completeRawBody = "";
+    let sseBuffer = "";
+    let contentBuffer = "";
+    let thinkDepth = 0;
+    let inReasoningBlock = false;
 
-    const processChunkData = (content, reasoning) => {
-      if (reasoning) {
-        rawReasoningAccumulator += reasoning;
+    const xmlTags = [
+      { open: '<think>',    close: '</think>'    },
+      { open: '<thought>',  close: '</thought>'  },
+      { open: '[thought]',  close: '[/thought]'  },
+      { open: '[thinking]', close: '[/thinking]' },
+      { open: '<reasoning>', close: '</reasoning>' }
+    ];
+
+    const leakRegex = /^\s*(?:<\|im_start\|>\s*(?:assistant)?\s*|<\|start_header_id\|>\s*assistant\s*<\|end_header_id\|>\s*|<\|assistant\|>\s*|<s>\s*|<\/?s>\s*|\[(?:INST|ASSISTANT)\]\s*)/i;
+    const reasoningHeaderRe = /^(REASONING BLOCK|REASONING:|THINKING:|CHAIN OF THOUGHT:|INTERNAL REASONING:|ANALYSIS:|INTERNAL MONOLOGUE:)\s*/i;
+    const reasoningEndRe = /(?:^|\n)(?:END REASONING|END THINKING|END OF REASONING|-{3,})\s*\n|\n\n(?=[^\n])/;
+
+    const processTextChunk = (newText, newReasoningField) => {
+      let contentDelta = "";
+      let reasoningDelta = "";
+
+      // Native reasoning fields skip the parser entirely
+      if (newReasoningField) {
+        reasoningDelta += newReasoningField;
       }
-      if (content) {
-        rawContentAccumulator += content;
-      }
 
-      let cleanContent = rawContentAccumulator;
-      let inlineReasoning = "";
+      if (newText) {
+        contentBuffer += newText;
 
-      const tags = [
-        { open: '<think>', close: '</think>' },
-        { open: '<thought>', close: '</thought>' },
-        { open: '[thought]', close: '[/thought]' },
-        { open: '[thinking]', close: '[/thinking]' }
-      ];
-
-      for (const tag of tags) {
-        let openIdx = cleanContent.indexOf(tag.open);
-        while (openIdx !== -1) {
-          let closeIdx = cleanContent.indexOf(tag.close, openIdx + tag.open.length);
-          if (closeIdx !== -1) {
-            const block = cleanContent.substring(openIdx + tag.open.length, closeIdx);
-            inlineReasoning += block + "\n";
-            cleanContent = cleanContent.substring(0, openIdx) + cleanContent.substring(closeIdx + tag.close.length);
-          } else {
-            const block = cleanContent.substring(openIdx + tag.open.length);
-            inlineReasoning += block;
-            cleanContent = cleanContent.substring(0, openIdx);
+        // Phase 1: Strip leaks at start
+        if (fullText.length === 0 && thinkDepth === 0 && !inReasoningBlock) {
+          const match = contentBuffer.match(leakRegex);
+          if (match) {
+            contentBuffer = contentBuffer.substring(match[0].length);
           }
-          openIdx = cleanContent.indexOf(tag.open);
         }
+
+        // Phase 2: Detect plain-text reasoning headers at start
+        if (fullText.length === 0 && thinkDepth === 0 && !inReasoningBlock) {
+          const headerMatch = reasoningHeaderRe.exec(contentBuffer);
+          if (headerMatch) {
+            inReasoningBlock = true;
+            contentBuffer = contentBuffer.substring(headerMatch[0].length);
+          }
+        }
+
+        // Phase 3: Stateful O(n) XML/tag extraction
+        let safeIdx = 0;
+
+        while (safeIdx < contentBuffer.length) {
+          let foundTag = false;
+
+          if (thinkDepth > 0) {
+            for (const tag of xmlTags) {
+              if (contentBuffer.substring(safeIdx).startsWith(tag.close)) {
+                thinkDepth--;
+                safeIdx += tag.close.length;
+                foundTag = true;
+                break;
+              } else if (contentBuffer.substring(safeIdx).startsWith(tag.open)) {
+                thinkDepth++;
+                safeIdx += tag.open.length;
+                foundTag = true;
+                break;
+              }
+            }
+          } else if (inReasoningBlock) {
+            const match = reasoningEndRe.exec(contentBuffer.substring(safeIdx));
+            if (match && match.index === 0) {
+              inReasoningBlock = false;
+              safeIdx += match[0].length;
+              foundTag = true;
+            }
+          } else {
+            for (const tag of xmlTags) {
+              if (contentBuffer.substring(safeIdx).startsWith(tag.open)) {
+                thinkDepth++;
+                safeIdx += tag.open.length;
+                foundTag = true;
+                break;
+              }
+            }
+          }
+
+          if (!foundTag) {
+            const remaining = contentBuffer.substring(safeIdx);
+            const nextOpen = Math.min(
+              remaining.indexOf('<') !== -1 ? remaining.indexOf('<') : Infinity,
+              remaining.indexOf('[') !== -1 ? remaining.indexOf('[') : Infinity
+            );
+
+            if (nextOpen === -1) {
+              // No tags ahead, flush all
+              if (thinkDepth > 0 || inReasoningBlock) {
+                reasoningDelta += remaining;
+              } else {
+                contentDelta += remaining;
+              }
+              safeIdx += remaining.length;
+            } else if (nextOpen > 0) {
+              // Flush up to potential tag
+              const textToFlush = remaining.substring(0, nextOpen);
+              if (thinkDepth > 0 || inReasoningBlock) {
+                reasoningDelta += textToFlush;
+              } else {
+                contentDelta += textToFlush;
+              }
+              safeIdx += nextOpen;
+            } else {
+              // Starts with < or [
+              let partialMatch = false;
+              for (const tag of xmlTags) {
+                const target = (thinkDepth > 0) ? tag.close : tag.open;
+                if (target.startsWith(remaining)) {
+                  partialMatch = true;
+                  break;
+                }
+              }
+              if (partialMatch) {
+                // Wait for more chunks to resolve tag
+                break;
+              } else {
+                // Not a tag, flush 1 char and move on (prevents lock on "3 < 5")
+                if (thinkDepth > 0 || inReasoningBlock) {
+                  reasoningDelta += remaining[0];
+                } else {
+                  contentDelta += remaining[0];
+                }
+                safeIdx++;
+              }
+            }
+          }
+        }
+        contentBuffer = contentBuffer.substring(safeIdx);
       }
-
-      // Strip common leaked prompt tags at the start of the message
-      cleanContent = cleanContent.replace(/^(?:\s*<\|im_start\|>\s*(?:assistant)?\s*|\s*<\|start_header_id\|>\s*assistant\s*<\|end_header_id\|>\s*|\s*<\|assistant\|>\s*|\s*<s>\s*|\s*<\/?s>\s*|\s*\[(?:INST|ASSISTANT)\]\s*)/i, "");
-
-      const totalReasoning = rawReasoningAccumulator + inlineReasoning;
-      
-      const contentDelta = cleanContent.substring(fullText.length);
-      const reasoningDelta = totalReasoning.substring(fullReasoning.length);
 
       if (contentDelta || reasoningDelta) {
-        fullText = cleanContent;
-        fullReasoning = totalReasoning;
+        fullText += contentDelta;
+        fullReasoning += reasoningDelta;
         if (onChunk) {
           onChunk(contentDelta, reasoningDelta);
+        }
+      }
+    };
+
+    const processSSELine = (line) => {
+      const cleanLine = line.trim();
+      if (!cleanLine || cleanLine === "data: [DONE]" || cleanLine === "data:[DONE]") return;
+      if (cleanLine.startsWith("data:")) {
+        try {
+          const colonIdx = cleanLine.indexOf(":");
+          const rawData = cleanLine.substring(colonIdx + 1).trim();
+          if (rawData && rawData !== "[DONE]") {
+            const parsed = JSON.parse(rawData);
+            const { content, reasoning } = extractChoiceContent(parsed);
+            if (content || reasoning) {
+              processTextChunk(content, reasoning);
+            }
+          }
+        } catch (e) {
+          // Ignore incomplete JSON chunks
         }
       }
     };
@@ -351,72 +434,34 @@ export async function streamChatCompletion({
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunkText = decoder.decode(value, { stream: true });
-      completeRawBody += chunkText;
-      buffer += chunkText;
-      const lines = buffer.split("\n");
-      buffer = lines.pop(); // Keep last incomplete line in buffer
+      sseBuffer += decoder.decode(value, { stream: true });
+      const events = sseBuffer.split("\n\n");
+      sseBuffer = events.pop(); // Keep incomplete event block
 
+      for (const event of events) {
+        const lines = event.split("\n");
+        for (const line of lines) {
+          processSSELine(line);
+        }
+      }
+    }
+
+    // Flush any remaining buffers
+    if (sseBuffer) {
+      const lines = sseBuffer.split("\n");
       for (const line of lines) {
-        const cleanLine = line.trim();
-        if (!cleanLine) continue;
-        if (cleanLine === "data: [DONE]" || cleanLine === "data:[DONE]") continue;
-
-        if (cleanLine.startsWith("data:")) {
-          try {
-            const colonIdx = cleanLine.indexOf(":");
-            const rawData = cleanLine.substring(colonIdx + 1).trim();
-            if (rawData === "[DONE]") continue;
-            
-            const parsed = JSON.parse(rawData);
-            const { content, reasoning } = extractChoiceContent(parsed);
-            
-            if (content || reasoning) {
-              processChunkData(content, reasoning);
-            }
-          } catch (e) {
-            // Ignore incomplete JSON chunks in streaming
-          }
-        }
+        processSSELine(line);
       }
     }
 
-    // Flush remaining buffer (SSE stream termination)
-    if (buffer) {
-      const cleanLine = buffer.trim();
-      if (cleanLine.startsWith("data:")) {
-        try {
-          const colonIdx = cleanLine.indexOf(":");
-          const rawData = cleanLine.substring(colonIdx + 1).trim();
-          if (rawData !== "[DONE]") {
-            const parsed = JSON.parse(rawData);
-            const { content, reasoning } = extractChoiceContent(parsed);
-            if (content || reasoning) {
-              processChunkData(content, reasoning);
-            }
-          }
-        } catch (e) {}
-      }
-    }
-
-    // Fallback if we finished the stream but fullText is empty (e.g. non-chunked single JSON payload)
-    if (!fullText) {
-      const fullBuffer = completeRawBody.trim();
-      if (fullBuffer && (fullBuffer.startsWith("{") || fullBuffer.startsWith("["))) {
-        try {
-          const parsed = JSON.parse(fullBuffer);
-          const { content, reasoning } = extractChoiceContent(parsed);
-          if (content || reasoning) {
-            processChunkData(content, reasoning);
-          } else if (parsed.error) {
-             const errorMsg = typeof parsed.error === 'string' ? parsed.error : (parsed.error.message || JSON.stringify(parsed.error));
-             throw new Error(errorMsg);
-          }
-        } catch (e) {
-          if (e.message && !e.message.includes("JSON") && !e.message.toLowerCase().includes("unexpected token") && !e.message.toLowerCase().includes("valid json")) {
-            throw e;
-          }
-        }
+    if (contentBuffer) {
+      // Flush anything left in the O(n) tag parser buffer
+      if (thinkDepth > 0 || inReasoningBlock) {
+        fullReasoning += contentBuffer;
+        if (onChunk) onChunk("", contentBuffer);
+      } else {
+        fullText += contentBuffer;
+        if (onChunk) onChunk(contentBuffer, "");
       }
     }
 

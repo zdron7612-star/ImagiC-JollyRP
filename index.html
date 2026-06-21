@@ -114,6 +114,9 @@
       </svg>
       <input type="text" id="global-search-models" class="input-field" placeholder="Search models/companions..."
         style="width: 100%; padding: 6px 12px 6px 34px; font-size: 13px; height: 36px; border-radius: 20px; box-sizing: border-box; background: var(--bg-tertiary); border: 1px solid var(--border-muted);">
+
+      <!-- Autocomplete Dropdown Container -->
+      <div id="search-autocomplete-dropdown" class="search-autocomplete-dropdown hidden" style="display: none;"></div>
     </div>
 
     <div class="nav-buttons" style="display: flex; gap: 6px; align-items: center;">
@@ -190,7 +193,8 @@
 
     <!-- LEFT SIDEBAR: Character Selection -->
     <aside class="sidebar-left collapsed">
-      <div class="sidebar-inner" style="width: 240px; height: 100%; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;">
+      <div class="sidebar-inner"
+        style="width: 240px; height: 100%; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;">
         <div class="sidebar-title">
           <span>Active Cast</span>
           <button onclick="location.reload()" style="background:none; border:none; color:inherit; cursor:pointer;"
@@ -244,7 +248,8 @@
             </button>
           </div>
           <div style="display:flex; flex-direction:column; gap:4px; margin-top:2px;">
-            <label for="sidebar-select-persona" style="font-size: 10px; color: var(--accent-gold); font-weight: 600;">With
+            <label for="sidebar-select-persona"
+              style="font-size: 10px; color: var(--accent-gold); font-weight: 600;">With
               Persona:</label>
             <select id="sidebar-select-persona" class="input-field"
               style="padding: 2px 6px; font-size: 11px; height: 26px; width: 100%; box-sizing: border-box;">
@@ -355,7 +360,8 @@
             <button class="filter-pill" data-filter-type="community-sort" data-value="star_count">Stars</button>
             <button class="filter-pill" data-filter-type="community-sort" data-value="trending_ratio">🔥 Ratio</button>
             <button class="filter-pill" data-filter-type="community-sort" data-value="hidden_gems">💎 Gems</button>
-            <button class="filter-pill" data-filter-type="community-sort" data-value="high_effort_recent">✨ Quality Recent</button>
+            <button class="filter-pill" data-filter-type="community-sort" data-value="high_effort_recent">✨ Quality
+              Recent</button>
             <button class="filter-pill" data-filter-type="community-sort"
               data-value="last_activity_at">Activity</button>
             <button class="filter-pill" data-filter-type="community-sort" data-value="created_at">Recent</button>
@@ -371,8 +377,7 @@
           <!-- Dynamic Info & Meta footer -->
           <div
             style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; border-top: 1px solid var(--border-muted); padding-top: 10px; flex-wrap: wrap; gap: 8px;">
-            <div id="filter-explanation-text"
-              style="font-size: 12px; color: var(--text-muted); text-align: left;">
+            <div id="filter-explanation-text" style="font-size: 12px; color: var(--text-muted); text-align: left;">
               <span style="color: var(--accent-gold);">★</span> Showing all companions matching your filters.
             </div>
 
@@ -383,10 +388,13 @@
               </span>
 
               <!-- Real Top Pagination -->
-              <div id="grid-pagination-controls-top" style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-muted);">
-                <button id="btn-pagination-top-prev" class="btn" style="padding: 2px 8px; font-size: 11px;">&lt;</button>
+              <div id="grid-pagination-controls-top"
+                style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-muted);">
+                <button id="btn-pagination-top-prev" class="btn"
+                  style="padding: 2px 8px; font-size: 11px;">&lt;</button>
                 <span id="pagination-top-page-info" style="color: var(--text-main); font-weight: 600;">1 of 1</span>
-                <button id="btn-pagination-top-next" class="btn" style="padding: 2px 8px; font-size: 11px;">&gt;</button>
+                <button id="btn-pagination-top-next" class="btn"
+                  style="padding: 2px 8px; font-size: 11px;">&gt;</button>
               </div>
             </div>
           </div>
@@ -430,9 +438,13 @@
       <!-- Floating Story Timeline Panel -->
       <div id="story-timeline-panel" class="glass-panel"
         style="display: none; position: absolute; top: 75px; right: 24px; width: 360px; max-height: calc(100% - 150px); overflow-y: auto; z-index: 100; padding: 20px; background: rgba(26, 26, 30, 0.96); backdrop-filter: blur(12px); border: 2px solid var(--accent-gold); border-radius: var(--radius-md); box-shadow: 0 12px 40px rgba(0,0,0,0.65); flex-direction: column; gap: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 10px;">
-          <h4 style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0; font-size: 16px; display: flex; align-items: center; gap: 6px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 10px;">
+          <h4
+            style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0; font-size: 16px; display: flex; align-items: center; gap: 6px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+              style="color: var(--accent-gold);">
               <line x1="6" y1="3" x2="6" y2="15"></line>
               <circle cx="18" cy="6" r="3"></circle>
               <circle cx="6" cy="18" r="3"></circle>
@@ -440,12 +452,15 @@
             </svg>
             Story Timeline Explorer
           </h4>
-          <button id="btn-close-story-timeline" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; font-weight: bold; padding: 0 4px;">×</button>
+          <button id="btn-close-story-timeline"
+            style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; font-weight: bold; padding: 0 4px;">×</button>
         </div>
         <div style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
-          Fork your story at any message by hovering over it and clicking the fork icon. Below is your conversation history tree:
+          Fork your story at any message by hovering over it and clicking the fork icon. Below is your conversation
+          history tree:
         </div>
-        <div id="timeline-tree-container" style="display: flex; flex-direction: column; gap: 12px; max-height: 320px; overflow-y: auto; padding-right: 4px; margin-top: 6px;">
+        <div id="timeline-tree-container"
+          style="display: flex; flex-direction: column; gap: 12px; max-height: 320px; overflow-y: auto; padding-right: 4px; margin-top: 6px;">
           <!-- Branches will be rendered dynamically here -->
         </div>
       </div>
@@ -458,8 +473,12 @@
           style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 10px;">
           <h4
             style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
-              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 14.7255 3.09032 17.1962 4.85857 19C5.0346 19.176 5.14376 19.4187 5.14376 19.6865C5.14376 20.9632 6.1782 22 7.45493 22H12Z"></path>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+              style="color: var(--accent-gold);">
+              <path
+                d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 14.7255 3.09032 17.1962 4.85857 19C5.0346 19.176 5.14376 19.4187 5.14376 19.6865C5.14376 20.9632 6.1782 22 7.45493 22H12Z">
+              </path>
               <circle cx="7.5" cy="10.5" r="1.5" fill="currentColor"></circle>
               <circle cx="11.5" cy="7.5" r="1.5" fill="currentColor"></circle>
               <circle cx="16.5" cy="9.5" r="1.5" fill="currentColor"></circle>
@@ -478,8 +497,11 @@
           <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 14px;">
             <div
               style="font-size: 12.5px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
-                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"/>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                style="color: var(--accent-gold);">
+                <path
+                  d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z" />
               </svg>
               AI Action Tags (*action*)
             </div>
@@ -538,8 +560,10 @@
           <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 14px;">
             <div
               style="font-size: 12.5px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                style="color: var(--accent-gold);">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
               AI Quotes/Speech ("speech")
             </div>
@@ -598,9 +622,11 @@
           <div style="padding-bottom: 8px;">
             <div
               style="font-size: 12.5px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                style="color: var(--accent-gold);">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
               Plain Text / Narrative
             </div>
@@ -671,80 +697,110 @@
       <div id="scenario-theme-panel" class="glass-panel"
         style="display: none; position: absolute; top: 75px; right: 24px; width: 380px; max-height: calc(100% - 150px); overflow-y: auto; z-index: 100; padding: 20px; background: rgba(26, 26, 30, 0.96); backdrop-filter: blur(12px); border: 2px solid var(--accent-gold); border-radius: var(--radius-md); box-shadow: 0 12px 40px rgba(0,0,0,0.65); flex-direction: column; gap: 16px;">
         <!-- Close button and Header -->
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 10px;">
-          <h4 style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0; font-size: 16px; display: flex; align-items: center; gap: 6px;">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 10px;">
+          <h4
+            style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0; font-size: 16px; display: flex; align-items: center; gap: 6px;">
             🎭 Scenario & Themes
           </h4>
-          <button id="btn-close-scenario-theme" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; font-weight: bold; padding: 0 4px;">×</button>
+          <button id="btn-close-scenario-theme"
+            style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; font-weight: bold; padding: 0 4px;">×</button>
         </div>
-        
+
         <!-- Tabs Header -->
         <div style="display: flex; border-bottom: 1px solid var(--border-muted); margin-bottom: 8px;">
-          <button id="tab-btn-scenario" class="tab-btn active" style="flex: 1; padding: 8px; background: none; border: none; border-bottom: 2px solid var(--accent-gold); color: var(--accent-gold); font-weight: 600; cursor: pointer; font-size: 13px;">🎬 Scenario</button>
-          <button id="tab-btn-themes" class="tab-btn" style="flex: 1; padding: 8px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); cursor: pointer; font-size: 13px;">🌈 Themes</button>
+          <button id="tab-btn-scenario" class="tab-btn active"
+            style="flex: 1; padding: 8px; background: none; border: none; border-bottom: 2px solid var(--accent-gold); color: var(--accent-gold); font-weight: 600; cursor: pointer; font-size: 13px;">🎬
+            Scenario</button>
+          <button id="tab-btn-themes" class="tab-btn"
+            style="flex: 1; padding: 8px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); cursor: pointer; font-size: 13px;">🌈
+            Themes</button>
         </div>
-        
+
         <!-- Tab Content 1: Scenario Control -->
         <div id="tab-content-scenario" style="display: flex; flex-direction: column; gap: 14px;">
           <!-- Dialogue Director (Tuning parameters) -->
           <div class="form-group" style="border-bottom: 1px solid var(--border-muted); padding-bottom: 12px;">
-            <label style="font-size: 12.5px; color: var(--accent-gold); font-weight: 600; margin-bottom: 8px; display: block;">🎬 Dialogue Director</label>
+            <label
+              style="font-size: 12.5px; color: var(--accent-gold); font-weight: 600; margin-bottom: 8px; display: block;">🎬
+              Dialogue Director</label>
             <div style="display: flex; flex-direction: column; gap: 10px;">
               <div class="form-group">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                   <label for="slider-verbosity" style="font-size: 11.5px; color: var(--text-main);">Verbosity</label>
-                  <span id="val-verbosity-sidebar" style="font-size: 11.5px; color: var(--accent-gold); font-weight: bold;">50%</span>
+                  <span id="val-verbosity-sidebar"
+                    style="font-size: 11.5px; color: var(--accent-gold); font-weight: bold;">50%</span>
                 </div>
-                <input type="range" id="slider-verbosity" min="0" max="100" value="50" style="width: 100%;" title="Short/Punchy vs Rich/Descriptive">
+                <input type="range" id="slider-verbosity" min="0" max="100" value="50" style="width: 100%;"
+                  title="Short/Punchy vs Rich/Descriptive">
               </div>
               <div class="form-group">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                  <label for="slider-action-ratio" style="font-size: 11.5px; color: var(--text-main);">Action Ratio</label>
-                  <span id="val-action-ratio-sidebar" style="font-size: 11.5px; color: var(--accent-gold); font-weight: bold;">50%</span>
+                  <label for="slider-action-ratio" style="font-size: 11.5px; color: var(--text-main);">Action
+                    Ratio</label>
+                  <span id="val-action-ratio-sidebar"
+                    style="font-size: 11.5px; color: var(--accent-gold); font-weight: bold;">50%</span>
                 </div>
-                <input type="range" id="slider-action-ratio" min="0" max="100" value="50" style="width: 100%;" title="Only Speech vs Actions & Thoughts">
+                <input type="range" id="slider-action-ratio" min="0" max="100" value="50" style="width: 100%;"
+                  title="Only Speech vs Actions & Thoughts">
               </div>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="setting-authors-note" style="font-size: 12px; color: var(--accent-gold); font-weight: 600; margin-bottom: 4px; display: block;">Author's Note</label>
-            <textarea id="setting-authors-note" class="textarea-field" placeholder="E.g. [Describe the setting as dark and rainy. Maggie is highly skeptical of Arthur's motives.]" style="width: 100%; box-sizing: border-box; min-height: 80px; font-size: 12px; resize: vertical; background: var(--bg-tertiary); color: var(--text-main); border: 1px solid var(--border-muted); border-radius: var(--radius-sm); padding: 8px;"></textarea>
+            <label for="setting-authors-note"
+              style="font-size: 12px; color: var(--accent-gold); font-weight: 600; margin-bottom: 4px; display: block;">Author's
+              Note</label>
+            <textarea id="setting-authors-note" class="textarea-field"
+              placeholder="E.g. [Describe the setting as dark and rainy. Maggie is highly skeptical of Arthur's motives.]"
+              style="width: 100%; box-sizing: border-box; min-height: 80px; font-size: 12px; resize: vertical; background: var(--bg-tertiary); color: var(--text-main); border: 1px solid var(--border-muted); border-radius: var(--radius-sm); padding: 8px;"></textarea>
           </div>
-          
+
           <div class="form-group">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label for="setting-authors-note-depth" style="font-size: 12px; color: var(--accent-gold); font-weight: 600;">Insertion Depth</label>
+              <label for="setting-authors-note-depth"
+                style="font-size: 12px; color: var(--accent-gold); font-weight: 600;">Insertion Depth</label>
               <span id="authors-note-depth-val" style="font-size: 12px; color: var(--text-muted);">3</span>
             </div>
             <input type="range" id="setting-authors-note-depth" min="1" max="15" value="3" style="width: 100%;">
-            <small style="font-size: 10px; color: var(--text-muted);">Slices the note into conversation history N messages from the bottom.</small>
+            <small style="font-size: 10px; color: var(--text-muted);">Slices the note into conversation history N
+              messages from the bottom.</small>
           </div>
-          
+
           <div class="form-group">
-            <label for="setting-system-override" style="font-size: 12px; color: var(--accent-gold); font-weight: 600; margin-bottom: 4px; display: block;">System Prompt Override</label>
-            <textarea id="setting-system-override" class="textarea-field" placeholder="Completely replace or extend system instructions. Include {{original}} to append." style="width: 100%; box-sizing: border-box; min-height: 80px; font-size: 12px; resize: vertical; background: var(--bg-tertiary); color: var(--text-main); border: 1px solid var(--border-muted); border-radius: var(--radius-sm); padding: 8px;"></textarea>
+            <label for="setting-system-override"
+              style="font-size: 12px; color: var(--accent-gold); font-weight: 600; margin-bottom: 4px; display: block;">System
+              Prompt Override</label>
+            <textarea id="setting-system-override" class="textarea-field"
+              placeholder="Completely replace or extend system instructions. Include {{original}} to append."
+              style="width: 100%; box-sizing: border-box; min-height: 80px; font-size: 12px; resize: vertical; background: var(--bg-tertiary); color: var(--text-main); border: 1px solid var(--border-muted); border-radius: var(--radius-sm); padding: 8px;"></textarea>
           </div>
-          
+
           <!-- Per-Character Model Assignment (Visible only in rooms) -->
-          <div id="room-model-assignment-container" style="display: none; border-top: 1px solid var(--border-muted); padding-top: 12px;">
-            <label style="font-size: 12px; color: var(--accent-gold); font-weight: 600; margin-bottom: 8px; display: block;">Per-Character Models</label>
+          <div id="room-model-assignment-container"
+            style="display: none; border-top: 1px solid var(--border-muted); padding-top: 12px;">
+            <label
+              style="font-size: 12px; color: var(--accent-gold); font-weight: 600; margin-bottom: 8px; display: block;">Per-Character
+              Models</label>
             <div id="room-character-model-list" style="display: flex; flex-direction: column; gap: 8px;">
               <!-- Populated dynamically via JS -->
             </div>
           </div>
-          
+
           <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
-            <button id="btn-save-scenario" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;">Apply Changes</button>
+            <button id="btn-save-scenario" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;">Apply
+              Changes</button>
           </div>
         </div>
-        
+
         <!-- Tab Content 2: Visual Themes -->
         <div id="tab-content-themes" style="display: none; flex-direction: column; gap: 12px;">
-          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Choose a site-wide & chat-wide visual theme:</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Choose a site-wide & chat-wide
+            visual theme:</div>
           <div id="themes-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <!-- Theme Card: Default (Sleek Dark) -->
-            <button class="theme-card active" data-theme="default" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--accent-gold); background: #1a1a1e; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
+            <button class="theme-card active" data-theme="default"
+              style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--accent-gold); background: #1a1a1e; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
               <span style="font-size: 12px; font-weight: 600; color: #f4f4f5;">Default Dark</span>
               <div style="display: flex; gap: 4px;">
                 <div style="width: 12px; height: 12px; border-radius: 50%; background: #121214;"></div>
@@ -752,9 +808,10 @@
                 <div style="width: 12px; height: 12px; border-radius: 50%; background: #bc4749;"></div>
               </div>
             </button>
-            
+
             <!-- Theme Card: Cyberpunk (Neon) -->
-            <button class="theme-card" data-theme="cyberpunk" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #0c0813; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
+            <button class="theme-card" data-theme="cyberpunk"
+              style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #0c0813; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
               <span style="font-size: 12px; font-weight: 600; color: #00ffcc;">Cyber Neon</span>
               <div style="display: flex; gap: 4px;">
                 <div style="width: 12px; height: 12px; border-radius: 50%; background: #0c0813;"></div>
@@ -762,9 +819,10 @@
                 <div style="width: 12px; height: 12px; border-radius: 50%; background: #00ffcc;"></div>
               </div>
             </button>
-            
+
             <!-- Theme Card: Cozy Tavern (Warm Sepia) -->
-            <button class="theme-card" data-theme="cozy-tavern" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #231a14; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
+            <button class="theme-card" data-theme="cozy-tavern"
+              style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #231a14; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
               <span style="font-size: 12px; font-weight: 600; color: #e8a87c;">Cozy Tavern</span>
               <div style="display: flex; gap: 4px;">
                 <div style="width: 12px; height: 12px; border-radius: 50%; background: #231a14;"></div>
@@ -772,9 +830,10 @@
                 <div style="width: 12px; height: 12px; border-radius: 50%; background: #83583c;"></div>
               </div>
             </button>
-            
+
             <!-- Theme Card: Vampire / Gothic (Blood Crimson) -->
-            <button class="theme-card" data-theme="gothic" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #140508; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
+            <button class="theme-card" data-theme="gothic"
+              style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #140508; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
               <span style="font-size: 12px; font-weight: 600; color: #ff3344;">Vampire Gothic</span>
               <div style="display: flex; gap: 4px;">
                 <div style="width: 12px; height: 12px; border-radius: 50%; background: #140508;"></div>
@@ -784,8 +843,11 @@
             </button>
 
             <!-- Theme Card: Retro Terminal (Green Monospace) -->
-            <button class="theme-card" data-theme="terminal" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #051405; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
-              <span style="font-size: 12px; font-weight: 600; color: #33ff33; font-family: 'Courier New', monospace;">Retro Terminal</span>
+            <button class="theme-card" data-theme="terminal"
+              style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #051405; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
+              <span
+                style="font-size: 12px; font-weight: 600; color: #33ff33; font-family: 'Courier New', monospace;">Retro
+                Terminal</span>
               <div style="display: flex; gap: 4px;">
                 <div style="width: 12px; height: 12px; border-radius: 50%; background: #051405;"></div>
                 <div style="width: 12px; height: 12px; border-radius: 50%; background: #33ff33;"></div>
@@ -794,7 +856,8 @@
             </button>
 
             <!-- Theme Card: Lavender Mist (Calming Purple) -->
-            <button class="theme-card" data-theme="lavender" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #181524; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
+            <button class="theme-card" data-theme="lavender"
+              style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); background: #181524; text-align: left; cursor: pointer; transition: var(--transition-smooth);">
               <span style="font-size: 12px; font-weight: 600; color: #d6c7ff;">Lavender Mist</span>
               <div style="display: flex; gap: 4px;">
                 <div style="width: 12px; height: 12px; border-radius: 50%; background: #181524;"></div>
@@ -821,19 +884,113 @@
           <!-- Persona Badge -->
           <div id="chat-header-persona-badge"
             style="font-size: 11px; color: var(--text-muted); background: var(--bg-tertiary); padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border-muted); display: flex; align-items: center; gap: 6px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+              style="color: var(--accent-gold);">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
             <span id="chat-header-persona-name" style="color: var(--accent-gold); font-weight: 600;">Default</span>
           </div>
 
+          <!-- Context Token Badge -->
+          <div id="chat-header-token-badge" class="chat-token-badge" style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+              style="color: var(--accent-purple);">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            <span id="token-badge-text">Tokens: 0 / 8,192 (0%)</span>
 
+            <!-- Token Details Panel -->
+            <div id="token-details-dropdown" class="token-details-panel">
+              <div
+                style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 8px;">
+                <span style="font-weight: 700; font-size: 12px; color: var(--text-main);">Context Constitution</span>
+                <span id="token-rate-fill" style="font-size: 10px; color: var(--accent-gold); font-weight: 600;">+0
+                  tkn/msg</span>
+              </div>
+
+              <!-- Multi-segment Progress Bar -->
+              <div class="token-progress-container">
+                <div id="bar-prompt" style="width: 0%; height: 100%; background: #3b82f6; transition: width 0.3s ease;"
+                  title="Prompt (Bio, Sliders, Rules)"></div>
+                <div id="bar-memory"
+                  style="width: 0%; height: 100%; background: var(--accent-purple); transition: width 0.3s ease;"
+                  title="Memory (RAG & Lore)"></div>
+                <div id="bar-history"
+                  style="width: 0%; height: 100%; background: var(--accent-gold); transition: width 0.3s ease;"
+                  title="History (Sliding window)"></div>
+                <div id="bar-input" style="width: 0%; height: 100%; background: #10b981; transition: width 0.3s ease;"
+                  title="Current Draft"></div>
+              </div>
+
+              <!-- Legend & stats -->
+              <div style="display: flex; flex-direction: column; gap: 8px; font-size: 11px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="display: flex; align-items: center; gap: 6px;">
+                    <span
+                      style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; display: inline-block;"></span>
+                    <span>System Prompt</span>
+                  </span>
+                  <span id="val-token-prompt" style="font-weight: 600; color: var(--text-main);">0 tkn</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="display: flex; align-items: center; gap: 6px;">
+                    <span
+                      style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-purple); display: inline-block;"></span>
+                    <span>Memory & World Info</span>
+                  </span>
+                  <span id="val-token-memory" style="font-weight: 600; color: var(--text-main);">0 tkn</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="display: flex; align-items: center; gap: 6px;">
+                    <span
+                      style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-gold); display: inline-block;"></span>
+                    <span>Recent History (12 msgs)</span>
+                  </span>
+                  <span id="val-token-history" style="font-weight: 600; color: var(--text-main);">0 tkn</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="display: flex; align-items: center; gap: 6px;">
+                    <span
+                      style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                    <span>Draft Input</span>
+                  </span>
+                  <span id="val-token-input" style="font-weight: 600; color: var(--text-main);">0 tkn</span>
+                </div>
+                <div style="height: 1px; background: var(--border-muted); margin: 4px 0;"></div>
+                <div
+                  style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700;">
+                  <span>Total Active Context</span>
+                  <span id="val-token-total" style="color: var(--accent-gold);">0 / 8,192 tkn</span>
+                </div>
+              </div>
+
+              <!-- Context Budget Setting -->
+              <div
+                style="display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--border-muted); padding-top: 8px; margin-top: 4px;">
+                <label for="select-context-budget"
+                  style="font-size: 10px; color: var(--text-muted); font-weight: 600;">Context Budget Limit</label>
+                <select id="select-context-budget"
+                  style="padding: 4px 8px; font-size: 11px; height: 28px; border-radius: 6px; background: var(--bg-tertiary); border: 1px solid var(--border-muted); color: var(--text-main); outline: none; width: 100%; cursor: pointer;">
+                  <option value="2048">2,048 (Legacy)</option>
+                  <option value="4096">4,096 (Standard)</option>
+                  <option value="8192" selected>8,192 (Recommended)</option>
+                  <option value="16384">16,384 (Extended)</option>
+                  <option value="32768">32,768 (Llama 3 / Mistral)</option>
+                  <option value="65536">65,536 (DeepSeek / Large)</option>
+                  <option value="131072">131,072 (Ultra Context)</option>
+                </select>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div style="display: flex; gap: 12px; align-items: center;">
           <button id="btn-chat-samplers" class="btn chat-header-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="4" y1="21" x2="4" y2="14"></line>
               <line x1="4" y1="10" x2="4" y2="3"></line>
               <line x1="12" y1="21" x2="12" y2="12"></line>
@@ -847,15 +1004,19 @@
             Samplers
           </button>
           <button id="btn-chat-guide" class="btn chat-header-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
               <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
             </svg>
             Guide
           </button>
           <button id="btn-toggle-chat-style" class="btn chat-header-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 14.7255 3.09032 17.1962 4.85857 19C5.0346 19.176 5.14376 19.4187 5.14376 19.6865C5.14376 20.9632 6.1782 22 7.45493 22H12Z"></path>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 14.7255 3.09032 17.1962 4.85857 19C5.0346 19.176 5.14376 19.4187 5.14376 19.6865C5.14376 20.9632 6.1782 22 7.45493 22H12Z">
+              </path>
               <circle cx="7.5" cy="10.5" r="1.5" fill="currentColor"></circle>
               <circle cx="11.5" cy="7.5" r="1.5" fill="currentColor"></circle>
               <circle cx="16.5" cy="9.5" r="1.5" fill="currentColor"></circle>
@@ -864,15 +1025,19 @@
             AI Styling
           </button>
           <button id="btn-toggle-scenario-theme" class="btn chat-header-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+              </path>
               <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
               <line x1="12" y1="22.08" x2="12" y2="12"></line>
             </svg>
             Scenario & Themes
           </button>
           <button id="btn-toggle-story-timeline" class="btn chat-header-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="6" y1="3" x2="6" y2="15"></line>
               <circle cx="18" cy="6" r="3"></circle>
               <circle cx="6" cy="18" r="3"></circle>
@@ -883,7 +1048,8 @@
           <button id="btn-chat-exit"
             onclick="document.getElementById('landing-screen').style.display='flex'; document.getElementById('chat-screen').style.display='none'; if(document.getElementById('chat-style-panel')) document.getElementById('chat-style-panel').style.display='none';"
             class="btn chat-header-btn exit-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
               <polyline points="16 17 21 12 16 7"></polyline>
               <line x1="21" y1="12" x2="9" y2="12"></line>
@@ -915,7 +1081,8 @@
         </div>
 
         <!-- Choice suggestions container -->
-        <div id="choice-chips-container" class="choice-chips-container" style="display: none; padding: 4px 0; margin-bottom: 4px;">
+        <div id="choice-chips-container" class="choice-chips-container"
+          style="display: none; padding: 4px 0; margin-bottom: 4px;">
           <!-- AI generated quick action/dialogue choices populate here -->
         </div>
 
@@ -1194,6 +1361,12 @@
               <label for="setting-provider">API Provider:</label>
               <select id="setting-provider" class="input-field">
                 <option value="openrouter">OpenRouter</option>
+                <option value="openai">OpenAI</option>
+                <option value="mistral">Mistral AI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="groq">Groq</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="together">Together AI</option>
                 <option value="custom">Custom Endpoint (Ollama, LM Studio, etc.)</option>
               </select>
             </div>
@@ -1302,7 +1475,7 @@
                       1.0 is default (disabled).</span>
                   </div>
 
-                   <div class="form-group">
+                  <div class="form-group">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                       <label for="setting-param-maxtokens" style="font-size: 12px;">Max Response Length: <span
                           id="val-param-maxtokens" style="color: var(--accent-gold); font-weight: bold;">1024</span>
@@ -1313,62 +1486,92 @@
                     <span style="font-size: 10px; color: var(--text-muted);">Max length of generated response per
                       message.</span>
                     <!-- Token budget warning when reasoning is enabled with low tokens -->
-                    <span id="reasoning-token-warning" style="display: none; align-items: center; gap: 6px; margin-top: 6px; padding: 6px 10px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 6px; font-size: 10px; color: #f0c040; line-height: 1.4;">
-                      ⚠️ <span>With reasoning enabled, models use tokens for thinking first. Set at least <strong>1024 tokens</strong> to avoid blank/cut-off responses.</span>
+                    <span id="reasoning-token-warning"
+                      style="display: none; align-items: center; gap: 6px; margin-top: 6px; padding: 6px 10px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 6px; font-size: 10px; color: #f0c040; line-height: 1.4;">
+                      ⚠️ <span>With reasoning enabled, models use tokens for thinking first. Set at least <strong>1024
+                          tokens</strong> to avoid blank/cut-off responses.</span>
                     </span>
                   </div>
 
                   <!-- Enable Suggestion Chips -->
-                  <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px; margin-top: 12px;">
+                  <div
+                    style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px; margin-top: 12px;">
                     <div style="text-align: left;">
-                      <label for="setting-param-suggestion-chips" style="font-size: 12.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; display: block; cursor: pointer;">AI Suggestion Chips</label>
-                      <span style="font-size: 10px; color: var(--text-muted); display: block; line-height: 1.4;">Generate 3 predictive quick actions/replies (consumes tokens).</span>
+                      <label for="setting-param-suggestion-chips"
+                        style="font-size: 12.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; display: block; cursor: pointer;">AI
+                        Suggestion Chips</label>
+                      <span
+                        style="font-size: 10px; color: var(--text-muted); display: block; line-height: 1.4;">Generate 3
+                        predictive quick actions/replies (consumes tokens).</span>
                     </div>
-                    <label class="switch-toggle" style="position: relative; display: inline-block; width: 44px; height: 22px; flex-shrink: 0; margin-left: 12px; cursor: pointer;">
-                      <input type="checkbox" id="setting-param-suggestion-chips" style="opacity: 0; width: 0; height: 0;" checked>
-                      <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 22px; border: 1px solid var(--border-muted);"></span>
+                    <label class="switch-toggle"
+                      style="position: relative; display: inline-block; width: 44px; height: 22px; flex-shrink: 0; margin-left: 12px; cursor: pointer;">
+                      <input type="checkbox" id="setting-param-suggestion-chips"
+                        style="opacity: 0; width: 0; height: 0;" checked>
+                      <span class="slider-toggle-btn"
+                        style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 22px; border: 1px solid var(--border-muted);"></span>
                     </label>
                   </div>
 
                   <!-- Reasoning Engine settings group -->
                   <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px; margin-top: 12px;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
-                        <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
-                        <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
-                        <path d="M12 5v14"/>
-                        <path d="M12 12h6"/>
-                        <path d="M12 12H6"/>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                        style="color: var(--accent-gold);">
+                        <path
+                          d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
+                        <path
+                          d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
+                        <path d="M12 5v14" />
+                        <path d="M12 12h6" />
+                        <path d="M12 12H6" />
                       </svg>
-                      <span style="font-family: var(--font-brand); font-size: 11.5px; font-weight: 700; color: var(--accent-gold); letter-spacing: 0.5px; text-transform: uppercase;">Model Reasoning Engine</span>
+                      <span
+                        style="font-family: var(--font-brand); font-size: 11.5px; font-weight: 700; color: var(--accent-gold); letter-spacing: 0.5px; text-transform: uppercase;">Model
+                        Reasoning Engine</span>
                     </div>
-                    
-                    <div style="background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255,255,255,0.04); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; flex-direction: column; gap: 12px;">
+
+                    <div
+                      style="background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255,255,255,0.04); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; flex-direction: column; gap: 12px;">
                       <!-- Enable Model Reasoning -->
                       <div style="display: flex; align-items: flex-start; justify-content: space-between;">
                         <div style="text-align: left; flex: 1; padding-right: 8px;">
-                          <label for="setting-param-enable-reasoning" style="font-size: 12px; font-weight: 600; color: var(--text-main); cursor: pointer; display: block;">
+                          <label for="setting-param-enable-reasoning"
+                            style="font-size: 12px; font-weight: 600; color: var(--text-main); cursor: pointer; display: block;">
                             Enable Model Reasoning
                           </label>
-                          <span style="font-size: 9.5px; color: var(--text-muted); display: block; line-height: 1.4; margin-top: 1px;">Request thinking/reasoning from the model. Disable to save output tokens.</span>
+                          <span
+                            style="font-size: 9.5px; color: var(--text-muted); display: block; line-height: 1.4; margin-top: 1px;">Request
+                            thinking/reasoning from the model. Disable to save output tokens.</span>
                         </div>
-                        <label class="switch-toggle" style="position: relative; display: inline-block; width: 36px; height: 18px; flex-shrink: 0; cursor: pointer; margin-top: 2px;">
-                          <input type="checkbox" id="setting-param-enable-reasoning" style="opacity: 0; width: 0; height: 0;" checked>
-                          <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.12); transition: .3s; border-radius: 18px; border: 1px solid var(--border-muted);"></span>
+                        <label class="switch-toggle"
+                          style="position: relative; display: inline-block; width: 36px; height: 18px; flex-shrink: 0; cursor: pointer; margin-top: 2px;">
+                          <input type="checkbox" id="setting-param-enable-reasoning"
+                            style="opacity: 0; width: 0; height: 0;" checked>
+                          <span class="slider-toggle-btn"
+                            style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.12); transition: .3s; border-radius: 18px; border: 1px solid var(--border-muted);"></span>
                         </label>
                       </div>
 
                       <!-- Show Reasoning Process -->
-                      <div style="display: flex; align-items: flex-start; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 10px;">
+                      <div
+                        style="display: flex; align-items: flex-start; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 10px;">
                         <div style="text-align: left; flex: 1; padding-right: 8px;">
-                          <label for="setting-param-show-reasoning" style="font-size: 12px; font-weight: 600; color: var(--text-main); cursor: pointer; display: block;">
+                          <label for="setting-param-show-reasoning"
+                            style="font-size: 12px; font-weight: 600; color: var(--text-main); cursor: pointer; display: block;">
                             Show Reasoning Process
                           </label>
-                          <span style="font-size: 9.5px; color: var(--text-muted); display: block; line-height: 1.4; margin-top: 1px;">Display the thinking accordion in chat bubbles when reasoning is enabled.</span>
+                          <span
+                            style="font-size: 9.5px; color: var(--text-muted); display: block; line-height: 1.4; margin-top: 1px;">Display
+                            the thinking accordion in chat bubbles when reasoning is enabled.</span>
                         </div>
-                        <label class="switch-toggle" style="position: relative; display: inline-block; width: 36px; height: 18px; flex-shrink: 0; cursor: pointer; margin-top: 2px;">
-                          <input type="checkbox" id="setting-param-show-reasoning" style="opacity: 0; width: 0; height: 0;" checked>
-                          <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.12); transition: .3s; border-radius: 18px; border: 1px solid var(--border-muted);"></span>
+                        <label class="switch-toggle"
+                          style="position: relative; display: inline-block; width: 36px; height: 18px; flex-shrink: 0; cursor: pointer; margin-top: 2px;">
+                          <input type="checkbox" id="setting-param-show-reasoning"
+                            style="opacity: 0; width: 0; height: 0;" checked>
+                          <span class="slider-toggle-btn"
+                            style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.12); transition: .3s; border-radius: 18px; border: 1px solid var(--border-muted);"></span>
                         </label>
                       </div>
                     </div>
@@ -1632,77 +1835,6 @@
               </div>
             </div>
           </div>
-
-          <!-- TAB 8: TTS Configuration -->
-          <div id="tab-tts" class="settings-tab-content" style="display: none;">
-            <h3 style="font-family: var(--font-brand); font-size: 20px; margin: 0 0 12px 0; color: var(--accent-gold);">
-              Text-To-Speech Settings</h3>
-            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">
-              Configure Text-To-Speech (TTS) settings. Autoplay will automatically speak incoming messages using your selected voice.
-            </p>
-
-            <div class="form-group" style="margin-bottom: 16px; flex-direction: row; align-items: center; gap: 8px;">
-              <input type="checkbox" id="setting-tts-autoplay" style="cursor: pointer; width: 16px; height: 16px;">
-              <label for="setting-tts-autoplay" style="font-size: 13px; font-weight: normal; cursor: pointer; user-select: none; color: var(--text-main);">Enable TTS Autoplay</label>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 16px;">
-              <label for="setting-tts-provider">TTS Provider:</label>
-              <select id="setting-tts-provider" class="input-field">
-                <option value="browser">Browser Speech Synthesis (Local)</option>
-                <option value="custom">Custom HTTP API Endpoint (ElevenLabs, OpenAI, etc.)</option>
-              </select>
-            </div>
-
-            <!-- Browser Speech Fields -->
-            <div id="tts-browser-fields" style="display: block; margin-top: 12px;">
-              <div class="form-group" style="margin-bottom: 16px;">
-                <label for="setting-tts-voice">Select Local Voice:</label>
-                <select id="setting-tts-voice" class="input-field">
-                  <!-- Loaded dynamically by JS -->
-                </select>
-              </div>
-              <div class="form-group" style="margin-bottom: 16px;">
-                <label for="setting-tts-pitch">Pitch: <span id="val-tts-pitch" style="color: var(--accent-gold); font-weight: bold;">1.0</span></label>
-                <input type="range" id="setting-tts-pitch" min="0.5" max="2.0" step="0.1" value="1.0" class="studio-slider">
-              </div>
-              <div class="form-group" style="margin-bottom: 16px;">
-                <label for="setting-tts-rate">Speed/Rate: <span id="val-tts-rate" style="color: var(--accent-gold); font-weight: bold;">1.0</span></label>
-                <input type="range" id="setting-tts-rate" min="0.5" max="2.0" step="0.1" value="1.0" class="studio-slider">
-              </div>
-            </div>
-
-            <!-- Custom HTTP API Fields -->
-            <div id="tts-custom-fields" style="display: none; margin-top: 12px;">
-              <div class="form-group" style="margin-bottom: 16px;">
-                <label for="setting-tts-url">API Endpoint URL:</label>
-                <input type="text" id="setting-tts-url" class="input-field" placeholder="https://api.elevenlabs.io/v1/text-to-speech/voice-id">
-              </div>
-              <div class="form-group" style="margin-bottom: 16px;">
-                <label for="setting-tts-key">API Key/Token:</label>
-                <input type="password" id="setting-tts-key" class="input-field" placeholder="Enter API Key / Token">
-              </div>
-              <div class="form-group" style="margin-bottom: 16px;">
-                <label for="setting-tts-method">HTTP Method:</label>
-                <select id="setting-tts-method" class="input-field">
-                  <option value="POST">POST</option>
-                  <option value="GET">GET</option>
-                </select>
-              </div>
-              <div class="form-group" style="margin-bottom: 16px;">
-                <label for="setting-tts-headers">Request Headers (JSON format):</label>
-                <textarea id="setting-tts-headers" class="textarea-field" style="font-family: monospace; font-size: 12px; min-height: 80px;" placeholder='{&#10;  "xi-api-key": "{{key}}",&#10;  "Content-Type": "application/json"&#10;}'></textarea>
-              </div>
-              <div class="form-group" style="margin-bottom: 16px;">
-                <label for="setting-tts-body">Request Body Template:</label>
-                <textarea id="setting-tts-body" class="textarea-field" style="font-family: monospace; font-size: 12px; min-height: 80px;" placeholder='{&#10;  "text": "{{text}}",&#10;  "model_id": "eleven_monolingual_v1"&#10;}'></textarea>
-                <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">
-                  *Use placeholders: <code>{{text}}</code> for spoken text (quotes extracted), <code>{{key}}</code> for your API key.
-                </span>
-              </div>
-            </div>
-          </div>
-
         </div>
         <!-- Footer Actions -->
         <div
@@ -1716,10 +1848,10 @@
 
   <!-- MODAL B: Character Studio (Creation Wizard) -->
   <div id="studio-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-content" style="background: var(--bg-secondary); max-width: 650px;">
-      <div class="studio-layout">
-        <div
-          style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-muted); padding-bottom:12px;">
+    <div class="modal-content"
+      style="background: var(--bg-secondary); border-width: 2px; max-width: 850px; width: 95%; height: auto; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-md); padding: 0;">
+      <div class="studio-layout" style="display: flex; flex-direction: column; height: 100%; padding: 24px; box-sizing: border-box; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 12px;">
           <h2 id="studio-modal-title"
             style="font-family: var(--font-brand); font-size: 26px; color: var(--accent-gold);">🎭 Character Studio</h2>
           <div style="display: flex; gap: 8px;">
@@ -1734,17 +1866,24 @@
           <input type="file" id="card-file-input" style="display: none;" accept=".json,.png">
         </div>
 
+        <!-- Import from URL bar -->
+        <div style="display: flex; gap: 8px; margin-top: 14px; margin-bottom: 8px; align-items: center;">
+          <input type="text" id="studio-import-url" class="input-field"
+            placeholder="Paste Chub.ai or JanitorAI character URL here..."
+            style="flex: 1; font-size: 12px; height: 32px; padding: 6px 12px; box-sizing: border-box; background: var(--bg-tertiary); border: 1px solid var(--border-muted); border-radius: 6px;">
+          <button id="btn-import-url" class="btn btn-primary"
+            style="font-size: 12px; height: 32px; padding: 0 16px; font-weight: 600; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
+            <span>✨</span> Import URL
+          </button>
+        </div>
+
         <!-- Janitor AI Help Callout -->
         <div
           style="background: rgba(59, 110, 140, 0.08); border: 1.5px solid rgba(59, 110, 140, 0.25); border-radius: var(--radius-sm); padding: 12px; margin-top: 14px; margin-bottom: 6px; display: flex; gap: 12px; align-items: flex-start;">
           <span style="font-size: 20px; line-height: 1; margin-top: 1px;">💡</span>
           <div style="font-size: 11.5px; line-height: 1.45; color: var(--text-muted);">
-            <strong style="color: #a5d3f2; font-family: var(--font-brand);">Importing from Janitor AI?</strong> Since
-            Janitor AI is a closed ecosystem protected by Cloudflare, direct search is not supported. However, you can
-            still play their characters here! Install a browser extension or userscript (such as <a
-              href="https://github.com/itsfantomas/janitor-exporter" target="_blank"
-              style="color: var(--accent-gold); text-decoration: underline;">Janitor Exporter</a>) to export V2 PNG
-            cards from their site, then click <strong>Import Card</strong> above to import them instantly!
+            <strong style="color: #a5d3f2; font-family: var(--font-brand);">Note:</strong> The import from JanitorAI URL
+            feature might not always work, and accessibility to cards depends on the status of the provider (JanitorAI).
           </div>
         </div>
 
@@ -1858,34 +1997,41 @@
           </div>
 
           <!-- Expression Sprites (Optional) -->
-          <div style="margin: 12px 0; border: 1.5px dashed rgba(255,255,255,0.06); padding: 14px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.12);">
-            <div style="font-size: 12.5px; font-weight: bold; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+          <div
+            style="margin: 12px 0; border: 1.5px dashed rgba(255,255,255,0.06); padding: 14px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.12);">
+            <div
+              style="font-size: 12.5px; font-weight: bold; color: var(--accent-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
               🎭 Expression Sprites (Optional URLs)
             </div>
             <div class="form-row" style="margin-bottom: 8px;">
               <div class="form-group">
                 <label for="studio-sprite-happy" style="font-size: 11px;">Happy Sprite URL</label>
-                <input type="text" id="studio-sprite-happy" class="input-field" style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. happy avatar URL">
+                <input type="text" id="studio-sprite-happy" class="input-field"
+                  style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. happy avatar URL">
               </div>
               <div class="form-group">
                 <label for="studio-sprite-sad" style="font-size: 11px;">Sad Sprite URL</label>
-                <input type="text" id="studio-sprite-sad" class="input-field" style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. sad avatar URL">
+                <input type="text" id="studio-sprite-sad" class="input-field"
+                  style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. sad avatar URL">
               </div>
             </div>
             <div class="form-row" style="margin-bottom: 8px;">
               <div class="form-group">
                 <label for="studio-sprite-angry" style="font-size: 11px;">Angry Sprite URL</label>
-                <input type="text" id="studio-sprite-angry" class="input-field" style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. angry avatar URL">
+                <input type="text" id="studio-sprite-angry" class="input-field"
+                  style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. angry avatar URL">
               </div>
               <div class="form-group">
                 <label for="studio-sprite-blush" style="font-size: 11px;">Blush Sprite URL</label>
-                <input type="text" id="studio-sprite-blush" class="input-field" style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. blushing avatar URL">
+                <input type="text" id="studio-sprite-blush" class="input-field"
+                  style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. blushing avatar URL">
               </div>
             </div>
             <div class="form-row">
               <div class="form-group" style="flex: 0.5;">
                 <label for="studio-sprite-smug" style="font-size: 11px;">Smug Sprite URL</label>
-                <input type="text" id="studio-sprite-smug" class="input-field" style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. smug avatar URL">
+                <input type="text" id="studio-sprite-smug" class="input-field"
+                  style="padding: 6px 10px; font-size: 12px;" placeholder="e.g. smug avatar URL">
               </div>
             </div>
           </div>
@@ -1988,10 +2134,10 @@
         <div
           style="position: absolute; bottom: 0; left: 0; width: 100%; height: 50%; background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 20%, transparent); display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; box-sizing: border-box; text-align: left;">
           <h2 id="profile-name"
-            style="font-family: var(--font-brand); font-size: 26px; margin: 0; color: var(--accent-gold); text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
+            style="font-family: var(--font-brand); font-size: 26px; margin: 0; color: var(--accent-gold); text-shadow: 0 2px 4px rgba(0,0,0,0.8); word-wrap: break-word; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; max-height: 90px;">
             Name</h2>
           <p id="profile-tagline"
-            style="font-size: 12px; color: #fff; opacity: 0.85; margin: 4px 0 0 0; font-style: italic; text-shadow: 0 1px 2px rgba(0,0,0,0.8); line-height: 1.3;">
+            style="font-size: 12px; color: #fff; opacity: 0.85; margin: 4px 0 0 0; font-style: italic; text-shadow: 0 1px 2px rgba(0,0,0,0.8); line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 6; line-clamp: 6; -webkit-box-orient: vertical;">
             Tagline</p>
         </div>
       </div>
@@ -2180,62 +2326,87 @@
           <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Maximum token length
             for the AI reply.</span>
           <!-- Token budget warning when reasoning is enabled with low tokens -->
-          <span id="popup-reasoning-token-warning" style="display: none; align-items: center; gap: 6px; margin-top: 8px; padding: 8px 10px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 6px; font-size: 11px; color: #f0c040; line-height: 1.4;">
-            ⚠️ <span>With reasoning enabled, models think first. Set at least <strong>1024 tokens</strong> to avoid cut-off responses.</span>
+          <span id="popup-reasoning-token-warning"
+            style="display: none; align-items: center; gap: 6px; margin-top: 8px; padding: 8px 10px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 6px; font-size: 11px; color: #f0c040; line-height: 1.4;">
+            ⚠️ <span>With reasoning enabled, models think first. Set at least <strong>1024 tokens</strong> to avoid
+              cut-off responses.</span>
           </span>
         </div>
 
         <!-- Enable Suggestion Chips -->
-        <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px; margin-top: 12px; margin-bottom: 4px;">
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px; margin-top: 12px; margin-bottom: 4px;">
           <div style="text-align: left;">
-            <label for="popup-param-suggestion-chips" style="font-size: 13.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; display: block; cursor: pointer;">AI Suggestion Chips</label>
-            <span style="font-size: 11px; color: var(--text-muted); display: block; line-height: 1.4;">Generate 3 predictive quick actions/replies (consumes tokens).</span>
+            <label for="popup-param-suggestion-chips"
+              style="font-size: 13.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; display: block; cursor: pointer;">AI
+              Suggestion Chips</label>
+            <span style="font-size: 11px; color: var(--text-muted); display: block; line-height: 1.4;">Generate 3
+              predictive quick actions/replies (consumes tokens).</span>
           </div>
-          <label class="switch-toggle" style="position: relative; display: inline-block; width: 44px; height: 22px; margin-left: 12px; flex-shrink: 0; cursor: pointer;">
+          <label class="switch-toggle"
+            style="position: relative; display: inline-block; width: 44px; height: 22px; margin-left: 12px; flex-shrink: 0; cursor: pointer;">
             <input type="checkbox" id="popup-param-suggestion-chips" style="opacity: 0; width: 0; height: 0;" checked>
-            <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 22px; border: 1px solid var(--border-muted);"></span>
+            <span class="slider-toggle-btn"
+              style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 22px; border: 1px solid var(--border-muted);"></span>
           </label>
         </div>
 
         <!-- Reasoning Engine settings group -->
         <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; margin-top: 16px;">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-gold);">
-              <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
-              <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
-              <path d="M12 5v14"/>
-              <path d="M12 12h6"/>
-              <path d="M12 12H6"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+              style="color: var(--accent-gold);">
+              <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
+              <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
+              <path d="M12 5v14" />
+              <path d="M12 12h6" />
+              <path d="M12 12H6" />
             </svg>
-            <span style="font-family: var(--font-brand); font-size: 13.5px; font-weight: 700; color: var(--accent-gold); letter-spacing: 0.5px; text-transform: uppercase;">Model Reasoning Engine</span>
+            <span
+              style="font-family: var(--font-brand); font-size: 13.5px; font-weight: 700; color: var(--accent-gold); letter-spacing: 0.5px; text-transform: uppercase;">Model
+              Reasoning Engine</span>
           </div>
-          
-          <div style="background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255,255,255,0.04); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; flex-direction: column; gap: 14px;">
+
+          <div
+            style="background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255,255,255,0.04); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; flex-direction: column; gap: 14px;">
             <!-- Enable Model Reasoning -->
             <div style="display: flex; align-items: flex-start; justify-content: space-between;">
               <div style="text-align: left; flex: 1; padding-right: 12px;">
-                <label for="popup-param-enable-reasoning" style="font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; display: block;">
+                <label for="popup-param-enable-reasoning"
+                  style="font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; display: block;">
                   Enable Model Reasoning
                 </label>
-                <span style="font-size: 10.5px; color: var(--text-muted); display: block; line-height: 1.4; margin-top: 2px;">Request thinking from the model. Disable for faster, token-efficient responses.</span>
+                <span
+                  style="font-size: 10.5px; color: var(--text-muted); display: block; line-height: 1.4; margin-top: 2px;">Request
+                  thinking from the model. Disable for faster, token-efficient responses.</span>
               </div>
-              <label class="switch-toggle" style="position: relative; display: inline-block; width: 40px; height: 20px; flex-shrink: 0; cursor: pointer; margin-top: 2px;">
-                <input type="checkbox" id="popup-param-enable-reasoning" style="opacity: 0; width: 0; height: 0;" checked>
-                <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.12); transition: .3s; border-radius: 20px; border: 1px solid var(--border-muted);"></span>
+              <label class="switch-toggle"
+                style="position: relative; display: inline-block; width: 40px; height: 20px; flex-shrink: 0; cursor: pointer; margin-top: 2px;">
+                <input type="checkbox" id="popup-param-enable-reasoning" style="opacity: 0; width: 0; height: 0;"
+                  checked>
+                <span class="slider-toggle-btn"
+                  style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.12); transition: .3s; border-radius: 20px; border: 1px solid var(--border-muted);"></span>
               </label>
             </div>
 
             <!-- Show Reasoning Process -->
-            <div style="display: flex; align-items: flex-start; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px;">
+            <div
+              style="display: flex; align-items: flex-start; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px;">
               <div style="text-align: left; flex: 1; padding-right: 12px;">
-                <label for="popup-param-show-reasoning" style="font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; display: block;">
+                <label for="popup-param-show-reasoning"
+                  style="font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; display: block;">
                   Show Reasoning Process
                 </label>
-                <span style="font-size: 10.5px; color: var(--text-muted); display: block; line-height: 1.4; margin-top: 2px;">Display the thinking accordion in chat bubbles when reasoning is enabled.</span>
+                <span
+                  style="font-size: 10.5px; color: var(--text-muted); display: block; line-height: 1.4; margin-top: 2px;">Display
+                  the thinking accordion in chat bubbles when reasoning is enabled.</span>
               </div>
-              <label class="switch-toggle" style="position: relative; display: inline-block; width: 40px; height: 20px; flex-shrink: 0; cursor: pointer; margin-top: 2px;">
+              <label class="switch-toggle"
+                style="position: relative; display: inline-block; width: 40px; height: 20px; flex-shrink: 0; cursor: pointer; margin-top: 2px;">
                 <input type="checkbox" id="popup-param-show-reasoning" style="opacity: 0; width: 0; height: 0;" checked>
-                <span class="slider-toggle-btn" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.12); transition: .3s; border-radius: 20px; border: 1px solid var(--border-muted);"></span>
+                <span class="slider-toggle-btn"
+                  style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.12); transition: .3s; border-radius: 20px; border: 1px solid var(--border-muted);"></span>
               </label>
             </div>
           </div>
