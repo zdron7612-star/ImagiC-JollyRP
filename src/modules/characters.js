@@ -1598,6 +1598,11 @@ export const charactersMethods = {
     if (personaScreen) {
       personaScreen.style.display = 'flex';
     }
+
+    const toggleSubnavBtn = document.getElementById('btn-toggle-subnav');
+    if (toggleSubnavBtn) toggleSubnavBtn.style.display = 'none';
+    const subnavSep = document.getElementById('subnav-sep');
+    if (subnavSep) subnavSep.style.display = 'none';
     
     this.renderPersonasList();
   },

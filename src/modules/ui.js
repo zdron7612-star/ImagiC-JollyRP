@@ -226,6 +226,25 @@ export const uiMethods = {
       });
     }
 
+    const toggleSubnavBtn = document.getElementById('btn-toggle-subnav');
+    const chatHeader = document.querySelector('.chat-header');
+    if (toggleSubnavBtn && chatHeader) {
+      toggleSubnavBtn.addEventListener('click', () => {
+        const isCollapsed = chatHeader.classList.toggle('collapsed');
+        toggleSubnavBtn.classList.toggle('collapsed-subnav', isCollapsed);
+        this.subnavCollapsed = isCollapsed;
+        localStorage.setItem('jollyrp_subnav_collapsed', isCollapsed ? 'true' : 'false');
+      });
+    }
+
+    const btnChatExit = document.getElementById('btn-chat-exit');
+    if (btnChatExit) {
+      btnChatExit.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showLandingScreen();
+      });
+    }
+
     const btnNewChat = document.getElementById('btn-new-chat');
     if (btnNewChat) {
       btnNewChat.addEventListener('click', () => {
@@ -1337,6 +1356,20 @@ export const uiMethods = {
       personaScreen.style.display = 'none';
     }
 
+    const toggleSubnavBtn = document.getElementById('btn-toggle-subnav');
+    if (toggleSubnavBtn) toggleSubnavBtn.style.display = 'none';
+    const subnavSep = document.getElementById('subnav-sep');
+    if (subnavSep) subnavSep.style.display = 'none';
+
+    const stylePanel = document.getElementById('chat-style-panel');
+    if (stylePanel) stylePanel.style.display = 'none';
+    const timelinePanel = document.getElementById('story-timeline-panel');
+    if (timelinePanel) timelinePanel.style.display = 'none';
+    const scenarioPanel = document.getElementById('scenario-theme-panel');
+    if (scenarioPanel) scenarioPanel.style.display = 'none';
+    const bannedPanel = document.getElementById('banned-words-panel');
+    if (bannedPanel) bannedPanel.style.display = 'none';
+
     // Reset filters configuration for default home page view
     this.exploreModeActive = false;
     this.currentVisibilityFilter = 'all';
@@ -1359,8 +1392,12 @@ export const uiMethods = {
       this.elements.globalSearchModels.value = '';
     }
 
-    this.renderCharacterLists();
-    this.renderMyChats();
+    // Defer heavy re-renders until after the screen swap is painted —
+    // this makes the transition feel instant (same as the exit button's raw swap).
+    requestAnimationFrame(() => {
+      this.renderCharacterLists();
+      this.renderMyChats();
+    });
 
     // Hide speaker strip when leaving chat
     if (this.elements.roomSpeakerStripContainer) {
@@ -1385,6 +1422,20 @@ export const uiMethods = {
       this.elements.historyScreen.style.display = 'none';
     }
 
+    // Toggle sub-navbar button and apply collapsed state
+    const toggleSubnavBtn = document.getElementById('btn-toggle-subnav');
+    if (toggleSubnavBtn) {
+      toggleSubnavBtn.style.display = 'inline-flex';
+      toggleSubnavBtn.classList.toggle('collapsed-subnav', !!this.subnavCollapsed);
+    }
+    const subnavSep = document.getElementById('subnav-sep');
+    if (subnavSep) subnavSep.style.display = 'inline-block';
+
+    const chatHeader = document.querySelector('.chat-header');
+    if (chatHeader) {
+      chatHeader.classList.toggle('collapsed', !!this.subnavCollapsed);
+    }
+
     // If NOT a room, ensure single avatar is visible and room overlay is hidden
     if (!this.isRoomActive()) {
       if (this.elements.chatHeaderAvatar) this.elements.chatHeaderAvatar.style.display = '';
@@ -1404,6 +1455,11 @@ export const uiMethods = {
     if (personaScreen) {
       personaScreen.style.display = 'none';
     }
+
+    const toggleSubnavBtn = document.getElementById('btn-toggle-subnav');
+    if (toggleSubnavBtn) toggleSubnavBtn.style.display = 'none';
+    const subnavSep = document.getElementById('subnav-sep');
+    if (subnavSep) subnavSep.style.display = 'none';
 
     // Collapse left sidebar by default
     const sidebarLeft = document.querySelector('.sidebar-left');

@@ -357,10 +357,13 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 24px;
+  padding: 10px 20px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-muted);
   z-index: 10;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, border-color 0.3s ease;
+  max-height: 80px;
+  overflow: hidden;
 }
 
 .chat-active-char {
@@ -2736,16 +2739,17 @@ body.theme-lavender {
 .chat-header-btn {
   background: transparent !important;
   border: 1px solid transparent !important;
-  padding: 7px 14px !important;
+  width: 34px !important;
+  height: 34px !important;
+  padding: 0 !important;
   border-radius: var(--radius-sm) !important;
   color: var(--text-muted) !important;
-  font-size: 13px;
-  font-weight: 500;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease !important;
+  flex-shrink: 0;
 }
 
 .chat-header-btn:hover {
@@ -3358,6 +3362,95 @@ body.theme-lavender .chat-header-btn.exit-btn:hover {
   background: rgba(244, 67, 54, 0.15) !important;
   color: #ef5350 !important;
   transform: scale(1.1);
+}
+
+/* Banned words badge */
+.chat-header-btn .banned-words-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--accent-crimson, #ff4d4d);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  border: 1px solid var(--bg-secondary);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Banned word chips */
+.banned-word-chip {
+  background: rgba(220, 53, 69, 0.12) !important;
+  border: 1px solid rgba(220, 53, 69, 0.4) !important;
+  color: #fce8e6 !important;
+  padding: 4px 10px !important;
+  border-radius: 14px !important;
+  font-size: 11.5px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.banned-word-chip .delete-word-btn {
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+  line-height: 1;
+}
+
+.banned-word-chip .delete-word-btn:hover {
+  color: var(--accent-crimson, #ff4d4d);
+}
+
+.banned-words-list-container::-webkit-scrollbar {
+  width: 4px;
+}
+.banned-words-list-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+/* Sub-navbar collapse behaviors */
+.chat-header.collapsed {
+  max-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom-color: transparent !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.subnav-toggle-icon {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.collapsed-subnav .subnav-toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Smooth transition for panels when sub-navbar collapses */
+.chat-container .glass-panel {
+  transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, transform 0.2s ease !important;
+}
+
+.chat-container:has(.chat-header.collapsed) .glass-panel {
+  top: 20px !important;
 }
 
 

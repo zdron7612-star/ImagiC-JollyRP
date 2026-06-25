@@ -922,7 +922,8 @@ export const roomsMethods = {
         verbosity: this.verbosity, 
         actionRatio: this.actionRatio, 
         maxTokens: this.generationParams.max_tokens,
-        systemPromptOverride: chat.systemPromptOverride || ''
+        systemPromptOverride: chat.systemPromptOverride || '',
+        bannedWords: this.bannedWords
       },
       activePersona,
       chat.roomContext || '',
@@ -1433,7 +1434,12 @@ export const roomsMethods = {
       speakerChar.name,
       chat.ledger || '',
       matchedLore,
-      { verbosity: this.verbosity, actionRatio: this.actionRatio, maxTokens: this.generationParams.max_tokens },
+      { 
+        verbosity: this.verbosity, 
+        actionRatio: this.actionRatio, 
+        maxTokens: this.generationParams.max_tokens,
+        bannedWords: this.bannedWords
+      },
       activePersona,
       chat.roomContext || '',
       isAutoMode,

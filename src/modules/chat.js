@@ -716,7 +716,8 @@ export const chatMethods = {
     const systemPrompt = synthesizeSystemPrompt(char, session.ledger, matchedLore, {
       verbosity: this.verbosity,
       actionRatio: this.actionRatio,
-      maxTokens: this.generationParams.max_tokens
+      maxTokens: this.generationParams.max_tokens,
+      bannedWords: this.bannedWords
     }, activePersona, retrievedChunksRegen);
 
     const apiMessages = buildApiMessages(systemPrompt, history, 12, this.instructTemplate, char.name, activePersona.name);
@@ -992,7 +993,10 @@ export const chatMethods = {
     if (this.isRoomActive()) {
       const userText = customText || this.elements.chatInput.value.trim();
       if (!userText) return;
-      if (!customText) this.elements.chatInput.value = '';
+      if (!customText) {
+        this.elements.chatInput.value = '';
+        this.elements.chatInput.style.height = '';
+      }
       return this.handleRoomSendMessage(userText, false);
     }
 
@@ -1007,6 +1011,7 @@ export const chatMethods = {
 
     if (!customText) {
       this.elements.chatInput.value = '';
+      this.elements.chatInput.style.height = '';
     }
 
     const session = this.getActiveSession();
@@ -1041,7 +1046,8 @@ export const chatMethods = {
     const systemPrompt = synthesizeSystemPrompt(char, session.ledger, matchedLore, {
       verbosity: this.verbosity,
       actionRatio: this.actionRatio,
-      maxTokens: this.generationParams.max_tokens
+      maxTokens: this.generationParams.max_tokens,
+      bannedWords: this.bannedWords
     }, activePersona, retrievedChunks);
 
     const messages = buildApiMessages(systemPrompt, session.messages, 12, this.instructTemplate, char.name, activePersona.name);

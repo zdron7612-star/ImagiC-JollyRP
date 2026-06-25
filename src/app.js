@@ -232,6 +232,8 @@ class JollyRPApp {
       }
 
       this.directorModeActive = false;
+      this.bannedWords = JSON.parse(localStorage.getItem('jollyrp_banned_words') || '[]');
+      this.subnavCollapsed = localStorage.getItem('jollyrp_subnav_collapsed') === 'true';
     }
 
   normalizeSessions(sessionsObj) {
@@ -441,6 +443,10 @@ class JollyRPApp {
               safeSetItem('jollyrp_style_settings', JSON.stringify(this.styleSettings));
               this.applyDynamicStyles();
             }
+            if (data.settings.bannedWords !== undefined) {
+              this.bannedWords = data.settings.bannedWords;
+              safeSetItem('jollyrp_banned_words', JSON.stringify(this.bannedWords));
+            }
           }
 
           // Load Characters
@@ -615,6 +621,7 @@ class JollyRPApp {
       safeSetItem('jollyrp_verbosity', this.verbosity);
       safeSetItem('jollyrp_action_ratio', this.actionRatio);
       safeSetItem('jollyrp_tts_settings', JSON.stringify(this.ttsSettings));
+      safeSetItem('jollyrp_banned_words', JSON.stringify(this.bannedWords || []));
 
       // Debounce the expensive parts (JSON stringify of characters/sessions/personas, XORing sessions, and server sync)
       if (this.saveDataTimeout) {
@@ -658,7 +665,8 @@ class JollyRPApp {
               pinCode: this.pinCode,
               tts: this.ttsSettings,
               theme: localStorage.getItem('jollyrp_theme') || 'default',
-              styleSettings: this.styleSettings
+              styleSettings: this.styleSettings,
+              bannedWords: this.bannedWords
             },
             characters: this.characters,
             sessions: this.sessions,
@@ -693,11 +701,13 @@ class JollyRPApp {
       this.setupStyleCustomizerListeners();
       this.setupScenarioThemePanelListeners();
       this.setupStoryTimelineListeners();
+      this.setupBannedWordsPanelListeners();
       this.populateModelSelector();
       this.applyTheme(localStorage.getItem('jollyrp_theme') || 'default');
 
       // Try loading from server first
       await this.loadDataFromServer();
+      this.renderBannedWordsList();
 
       // Restore state
       if (this.apiProvider && this.elements.providerSelect) {

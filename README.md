@@ -23,6 +23,16 @@
 
 ---
 
+## 🆕 What's New (v1.2.1)
+
+- **🚫 Banned Words / Phrases Blacklist**: A global blacklist system that lets you specify words, corny expressions, or repetitive phrases you want the AI to strictly avoid. These are dynamically injected as system prompt rule constraints.
+- **📱 Chat Space Optimization**: Compact icon-only character sub-navbar buttons (with descriptive hover tooltips) to maximize vertical space for chat text.
+- **↕️ Collapsible Sub-Navbar**: A smooth, transition-animated toggler chevron button in the main header that rolls the character sub-navbar up or down on the fly, with synchronized panel positioning.
+- **✨ Textarea Auto-Height Resizing Fix**: Corrected textarea height stickiness when sending messages. The input field now dynamically resets to single-line styling instantly after clearing text.
+- **⚡ Instant Navigation Transition**: Reduced logo-click response lag by deferring heavy home-page list redraws using `requestAnimationFrame`.
+
+---
+
 ## ✨ Features
 
 - **🎭 Uncensored & Local**: Your data never leaves your machine. Full AES-256 encryption protects your API keys locally. No filters, no tracking.

@@ -621,5 +621,129 @@ export const themeMethods = {
         container.classList.remove('director-active');
       }
     }
+  },
+
+  setupBannedWordsPanelListeners() {
+    const panel = document.getElementById('banned-words-panel');
+    const btnToggle = document.getElementById('btn-toggle-banned-words');
+    const btnClose = document.getElementById('btn-close-banned-words');
+    const input = document.getElementById('banned-word-input');
+    const btnAdd = document.getElementById('btn-add-banned-word');
+    const btnClear = document.getElementById('btn-clear-banned-words');
+
+    if (btnToggle && panel) {
+      btnToggle.addEventListener('click', () => {
+        const isHidden = getComputedStyle(panel).display === 'none';
+        if (isHidden) {
+          panel.style.display = 'flex';
+          this.renderBannedWordsList();
+        } else {
+          panel.style.display = 'none';
+        }
+      });
+    }
+
+    if (btnClose && panel) {
+      btnClose.addEventListener('click', () => {
+        panel.style.display = 'none';
+      });
+    }
+
+    const addWord = () => {
+      if (!input) return;
+      const word = input.value.trim();
+      if (!word) return;
+      if (this.bannedWords.includes(word)) {
+        this.showToast('Word/phrase already blacklisted.');
+        input.value = '';
+        return;
+      }
+      this.bannedWords.push(word);
+      input.value = '';
+      this.saveBannedWordsState();
+      this.renderBannedWordsList();
+    };
+
+    if (btnAdd) {
+      btnAdd.addEventListener('click', addWord);
+    }
+
+    if (input) {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addWord();
+        }
+      });
+    }
+
+    if (btnClear) {
+      btnClear.addEventListener('click', () => {
+        if (this.bannedWords.length === 0) return;
+        if (confirm("Are you sure you want to clear all blacklisted words/phrases?")) {
+          this.bannedWords = [];
+          this.saveBannedWordsState();
+          this.renderBannedWordsList();
+        }
+      });
+    }
+  },
+
+  saveBannedWordsState() {
+    safeSetItem('jollyrp_banned_words', JSON.stringify(this.bannedWords || []));
+    this.saveData();
+  },
+
+  renderBannedWordsList() {
+    const listContainer = document.getElementById('banned-words-list');
+    const countEl = document.getElementById('banned-words-count');
+    const badgeEl = document.getElementById('banned-words-badge');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '';
+    const words = this.bannedWords || [];
+    
+    // Update count text
+    if (countEl) {
+      countEl.textContent = `${words.length} word${words.length === 1 ? '' : 's'} active`;
+    }
+
+    // Update header badge
+    if (badgeEl) {
+      if (words.length > 0) {
+        badgeEl.textContent = words.length;
+        badgeEl.style.display = 'flex';
+      } else {
+        badgeEl.style.display = 'none';
+      }
+    }
+
+    if (words.length === 0) {
+      listContainer.innerHTML = `<div style="font-size: 11px; color: var(--text-muted); font-style: italic; width: 100%; text-align: center; padding: 12px 0;">No words blacklisted.</div>`;
+      return;
+    }
+
+    words.forEach((word) => {
+      const chip = document.createElement('span');
+      chip.className = 'banned-word-chip';
+      
+      const textSpan = document.createElement('span');
+      textSpan.textContent = word;
+      
+      const deleteBtn = document.createElement('span');
+      deleteBtn.className = 'delete-word-btn';
+      deleteBtn.innerHTML = '&times;';
+      deleteBtn.title = 'Remove blacklist rule';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.bannedWords = this.bannedWords.filter(w => w !== word);
+        this.saveBannedWordsState();
+        this.renderBannedWordsList();
+      });
+
+      chip.appendChild(textSpan);
+      chip.appendChild(deleteBtn);
+      listContainer.appendChild(chip);
+    });
   }
 };

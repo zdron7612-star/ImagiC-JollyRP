@@ -219,6 +219,10 @@ Roleplay Rules:
 - Speak naturally, avoiding generic greetings and repetitive phrasing.
 `;
 
+  if (options.bannedWords && options.bannedWords.length > 0) {
+    prompt += `\nBANNED WORDS/PHRASES (STRICT RULE):\n- You MUST NEVER use any of the following words, phrases, or expressions in your responses under any circumstances: ${options.bannedWords.map(w => `"${w}"`).join(', ')}.\n- Find alternative wording that carries the same meaning without using these exact terms.\n`;
+  }
+
   if (persona) {
     const cleanPersonaDesc = replacePlaceholders(persona.description || '', charName, userName);
     const cleanPersonaPersonality = replacePlaceholders(persona.personality || '', charName, userName);
@@ -612,6 +616,10 @@ Roleplay Rules:
 - Format physical actions, emotional states, and environmental descriptions enclosed in asterisks (e.g. *he polished the wood, sighing* or *shivering slightly*).
 - Speak naturally, avoiding generic greetings and repetitive phrasing.
 `;
+
+  if (options.bannedWords && options.bannedWords.length > 0) {
+    prompt += `\nBANNED WORDS/PHRASES (STRICT RULE):\n- You MUST NEVER use any of the following words, phrases, or expressions in your responses under any circumstances: ${options.bannedWords.map(w => `"${w}"`).join(', ')}.\n- Find alternative wording that carries the same meaning without using these exact terms.\n`;
+  }
 
   if (persona) {
     const cleanPersonaDesc = replacePlaceholders(persona.description || '', activeSpeakerName, userName);

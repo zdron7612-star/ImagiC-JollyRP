@@ -121,6 +121,15 @@
 
     <div class="nav-buttons" style="display: flex; gap: 6px; align-items: center;">
 
+      <!-- Toggle character sub-navbar -->
+      <button id="btn-toggle-subnav" class="btn nav-icon-btn" title="Toggle Character Navbar" style="display: none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="subnav-toggle-icon">
+          <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+      </button>
+      <div id="subnav-sep" class="nav-sep" style="display: none;"></div>
+
       <!-- Divider group: icon-only ghost pills -->
       <button id="btn-convo-history" class="btn nav-icon-btn" title="Chat History">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -869,6 +878,46 @@
         </div>
       </div>
 
+      <!-- Floating Banned Words Panel -->
+      <div id="banned-words-panel" class="glass-panel"
+        style="display: none; position: absolute; top: 75px; right: 24px; width: 350px; max-height: calc(100% - 150px); overflow-y: auto; z-index: 100; padding: 20px; background: rgba(26, 26, 30, 0.96); backdrop-filter: blur(12px); border: 2px solid var(--accent-gold); border-radius: var(--radius-md); box-shadow: 0 12px 40px rgba(0,0,0,0.65); flex-direction: column; gap: 14px;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-muted); padding-bottom: 10px;">
+          <h4 style="font-family: var(--font-brand); color: var(--accent-gold); margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+              style="color: var(--accent-gold);">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+            </svg>
+            Banned Words & Phrases
+          </h4>
+          <button id="btn-close-banned-words"
+            style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; font-weight: bold; padding: 0 4px;">×</button>
+        </div>
+
+        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
+          Specify words, expressions, or corny phrases you want the AI to strictly avoid. These are injected as a global roleplay rule constraint.
+        </div>
+
+        <!-- Add Input Group -->
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="banned-word-input" class="input-field" placeholder="Type a word or phrase..." style="flex: 1; height: 36px; padding: 8px 12px; font-size: 13px;" />
+          <button id="btn-add-banned-word" class="btn btn-primary" style="height: 36px; padding: 0 16px; font-size: 13px; font-weight: 600;">Add</button>
+        </div>
+
+        <!-- List Header/Stats -->
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+          <span id="banned-words-count">0 words active</span>
+          <span id="btn-clear-banned-words" style="color: var(--accent-crimson); cursor: pointer; font-weight: 600; text-decoration: none;">Clear All</span>
+        </div>
+
+        <!-- Chips Container -->
+        <div id="banned-words-list" class="banned-words-list-container" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 4px; min-height: 40px; background: rgba(0,0,0,0.2); border-radius: var(--radius-sm); padding: 8px; border: 1px solid rgba(255,255,255,0.05);">
+          <!-- Chips generated dynamically -->
+        </div>
+      </div>
+
       <!-- Chat Header -->
       <div class="chat-header">
         <div class="chat-active-char">
@@ -988,7 +1037,7 @@
         </div>
 
         <div style="display: flex; gap: 12px; align-items: center;">
-          <button id="btn-chat-samplers" class="btn chat-header-btn">
+          <button id="btn-chat-samplers" class="btn chat-header-btn" title="Samplers">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="4" y1="21" x2="4" y2="14"></line>
@@ -1001,17 +1050,15 @@
               <line x1="9" y1="8" x2="15" y2="8"></line>
               <line x1="17" y1="16" x2="23" y2="16"></line>
             </svg>
-            Samplers
           </button>
-          <button id="btn-chat-guide" class="btn chat-header-btn">
+          <button id="btn-chat-guide" class="btn chat-header-btn" title="Guide">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
               <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
             </svg>
-            Guide
           </button>
-          <button id="btn-toggle-chat-style" class="btn chat-header-btn">
+          <button id="btn-toggle-chat-style" class="btn chat-header-btn" title="AI Styling & Director">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path
@@ -1022,9 +1069,8 @@
               <circle cx="16.5" cy="9.5" r="1.5" fill="currentColor"></circle>
               <circle cx="15.5" cy="14.5" r="1.5" fill="currentColor"></circle>
             </svg>
-            AI Styling
           </button>
-          <button id="btn-toggle-scenario-theme" class="btn chat-header-btn">
+          <button id="btn-toggle-scenario-theme" class="btn chat-header-btn" title="Scenario & Themes">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path
@@ -1033,9 +1079,8 @@
               <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
               <line x1="12" y1="22.08" x2="12" y2="12"></line>
             </svg>
-            Scenario & Themes
           </button>
-          <button id="btn-toggle-story-timeline" class="btn chat-header-btn">
+          <button id="btn-toggle-story-timeline" class="btn chat-header-btn" title="Timeline">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="6" y1="3" x2="6" y2="15"></line>
@@ -1043,11 +1088,17 @@
               <circle cx="6" cy="18" r="3"></circle>
               <path d="M18 9a9 9 0 0 1-9 9"></path>
             </svg>
-            Timeline
+          </button>
+          <button id="btn-toggle-banned-words" class="btn chat-header-btn" title="Banned Words Blacklist" style="position: relative;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+            </svg>
+            <span id="banned-words-badge" class="banned-words-badge" style="display: none;">0</span>
           </button>
           <button id="btn-chat-exit"
-            onclick="document.getElementById('landing-screen').style.display='flex'; document.getElementById('chat-screen').style.display='none'; if(document.getElementById('chat-style-panel')) document.getElementById('chat-style-panel').style.display='none';"
-            class="btn chat-header-btn exit-btn">
+            class="btn chat-header-btn exit-btn" title="Exit Chat">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
